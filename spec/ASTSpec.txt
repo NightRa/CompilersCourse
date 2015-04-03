@@ -2,7 +2,7 @@ Program = (programName: String), Content
 Content = Declerations, Statements
 -----
 Declerations = [Var]
-Var = (identifier: String), (type: PType)
+Var = (name: String), (type: PType)
 PType = Boolean | Int | Real
 -----
 Statements = [Statement]
