@@ -1,17 +1,17 @@
-package compilers.ast;
+package compiler.ast;
 
 public enum PCodeType {
-    INT {
+    Int {
         public int size() {
             return 1;
         }
     },
-    REAL {
+    Real {
         public int size() {
             return 2;
         }
     },
-    BOOL {
+    Bool {
         public int size() {
             return 1;
         }
