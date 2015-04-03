@@ -1,0 +1,33 @@
+Program = (programName: String), Content
+Content = Declerations, Statements
+-----
+Declerations = [Var]
+Var = (identifier: String), (type: PType)
+PType = Boolean | Int | Real
+-----
+Statements = [Statement]
+Statement = Print Expr           |
+            If Expr Statements   | 
+            IfElse Expr (then: Statements) (else: Statements) |
+            While Expr Statements|
+            Assignment Var Expr
+----
+Expr = + Expr Expr | 
+       - Expr Expr |
+       * Expr Expr |
+       / Expr Expr |
+       -- % Expr Expr | 
+       < Expr Expr |
+       > Expr Expr | 
+       <= Expr Expr |
+       >= Expr Expr |
+       == Expr Expr |
+       != Expr Expr |
+       && Expr Expr |
+       || Expr Expr |
+       - Expr |
+       ! Expr |
+       AtomExpr Atom
+----
+Atom = VarAtom Var | LiteralAtom Literal 
+Literal = Int int | Real double | True | False

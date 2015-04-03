@@ -1,0 +1,202 @@
+ldc 5
+ldc 10
+sto
+ldc 6
+ldc 15
+sto
+ldc 7
+ldc 9
+sto
+ldc 8
+ldc 1
+sto
+ldc 9
+ldc 0
+sto
+ldc 0
+fjp L0
+ldc 5
+ldc 5
+ind
+ldc 9
+add
+sto
+ujp L1
+L0:
+ldc 5
+ldc 0
+ldc 5
+ind
+mul
+sto
+L1:
+ldc 5
+ldc 12
+sto
+ldc 5
+ind
+ldc 10
+grt
+fjp L2
+ldc 5
+ldc 5
+ind
+ldc 6
+sub
+sto
+ujp L3
+L2:
+ldc 5
+ldc 10
+ldc 5
+ind
+mul
+sto
+L3:
+ldc 5
+ldc 12
+sto
+ldc 5
+ind
+ldc 10
+leq
+fjp L4
+ldc 5
+ldc 5
+ind
+ldc 6
+add
+sto
+ujp L5
+L4:
+ldc 5
+ldc 10
+ldc 5
+ind
+div
+sto
+L5:
+ldc 8
+ldc 5
+ind
+ldc 100
+les
+sto
+ldc 8
+ldc 5
+ind
+ldc 100
+grt
+sto
+ldc 8
+ldc 5
+ind
+ldc 100
+leq
+sto
+ldc 8
+ldc 5
+ind
+ldc 100
+geq
+sto
+ldc 8
+ldc 5
+ind
+ldc 100
+equ
+sto
+ldc 8
+ldc 5
+ind
+ldc 100
+neq
+sto
+ldc 9
+ldc 1
+sto
+L6:
+ldc 9
+ind
+ldc 10
+les
+fjp L7
+ldc 9
+ind
+print
+ldc 9
+ind
+ldc 5
+les
+fjp L8
+ldc 6
+ldc 9
+ldc 6
+ind
+add
+sto
+L8:
+ldc 9
+ldc 9
+ind
+ldc 1
+add
+sto
+ujp L6
+L7:
+ldc 5
+ind
+print
+ldc 8
+ldc 1
+sto
+ldc 8
+ind
+ldc 1
+equ
+fjp L9
+ldc 6
+ldc 5
+ind
+sto
+L9:
+ldc 5
+ldc 6
+sto
+ldc 6
+ldc 2
+sto
+ldc 5
+ind
+ldc 5
+grt
+ldc 6
+ind
+ldc 3
+les
+and
+fjp L10
+ldc 7
+ldc 10
+sto
+L10:
+ldc 5
+ldc 4
+sto
+ldc 6
+ldc 2
+sto
+ldc 5
+ind
+ldc 5
+grt
+ldc 6
+ind
+ldc 3
+les
+or
+fjp L11
+ldc 7
+ldc 10
+sto
+L11:

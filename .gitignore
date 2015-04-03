@@ -1,0 +1,8 @@
+*.iml
+.idea/
+out/
+*.class
+*.jar
+
+Lectures/
+old/
