@@ -1,6 +1,8 @@
 package compiler.util;
 
-public abstract class List<A> {
+import java.util.Iterator;
+
+public abstract class List<A> implements Iterable<A> {
     public abstract boolean isEmpty();
     public abstract <B> List<B> map(Function<A,B> f);
     public abstract A head();
@@ -33,7 +35,6 @@ public abstract class List<A> {
         }
         return acc;
     }
-
 
     public static final class Nil<A> extends List<A> {
         public boolean isEmpty() {
@@ -103,4 +104,17 @@ public abstract class List<A> {
         return Strings.mkString("List(", ",", ")", this);
     }
 
+    public Iterator<A> iterator() {
+        return new Iterator<A>() {
+            List<A> current = List.this;
+            public boolean hasNext() {
+                return !current.isEmpty();
+            }
+            public A next() {
+                A value = current.head();
+                current = current.tail();
+                return value;
+            }
+        };
+    }
 }

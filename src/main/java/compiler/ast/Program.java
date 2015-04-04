@@ -6,18 +6,21 @@ import compiler.util.Function;
 import compiler.util.List;
 import compiler.util.Strings;
 
+import java.util.HashMap;
+
 public class Program {
     public final String programName;
     public final List<Var> declarations;
     public final List<Statement> statements;
+    public final HashMap<String, Var> symbolTable;
 
-    public Program(String programName, List<Var> declarations, List<Statement> statements) {
+    public Program(String programName, List<Var> declarations, List<Statement> statements, HashMap<String, Var> symbolTable) {
         this.programName = programName;
         this.declarations = declarations;
         this.statements = statements;
+        this.symbolTable = symbolTable;
     }
 
-    @Override
     public String toString() {
         String header = "Program " + programName + ": \r\n";
         String declarations =
