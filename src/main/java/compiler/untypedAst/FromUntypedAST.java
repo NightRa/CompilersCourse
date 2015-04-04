@@ -66,7 +66,7 @@ public class FromUntypedAST {
         return new Program(programName, declarations, statements);
     }
 
-    private static HashMap<String, Var> createSymbolTable(List<Var> declarations) {
+    public static HashMap<String, Var> createSymbolTable(List<Var> declarations) {
         HashMap<String, Var> symbolTable = new HashMap<>();
         while (!declarations.isEmpty()) {
             symbolTable.put(declarations.head().name, declarations.head());

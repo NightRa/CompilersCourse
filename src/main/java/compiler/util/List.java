@@ -51,6 +51,13 @@ public abstract class List<A> {
         public List<A> append(List<A> other) {
             return other;
         }
+
+        public boolean equals(Object other) {
+            return other instanceof Nil;
+        }
+        public int hashCode() {
+            return 0;
+        }
     }
     public static final class Cons<A> extends List<A>{
         public final A head;
@@ -76,9 +83,24 @@ public abstract class List<A> {
         public List<A> append(List<A> other) {
             return cons(head, tail.append(other));
         }
+
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Cons<?> cons = (Cons<?>) o;
+            if (!head.equals(cons.head)) return false;
+            return tail.equals(cons.tail);
+
+        }
+        public int hashCode() {
+            int result = head.hashCode();
+            result = 31 * result + tail.hashCode();
+            return result;
+        }
     }
 
     public String toString() {
         return Strings.mkString("List(", ",", ")", this);
     }
+
 }
