@@ -1,6 +1,10 @@
 package compiler.ast.atom;
 
 import compiler.ast.PCodeType;
+import compiler.pcode.LabelGenerator;
+import compiler.pcode.PCommand;
+import compiler.pcode.SymbolTable;
+import compiler.util.List;
 
 public class Var<A> extends Atom<A> {
     public final String name;
@@ -26,14 +30,27 @@ public class Var<A> extends Atom<A> {
         return name + ": " + type.toString();
     }
 
+    /**
+     * Var is an expression, generate the code which puts the value of the var into the stack.
+     */
+    public List<PCommand> genPCode(SymbolTable symbolTable, LabelGenerator labelGenerator) {
+        /**
+         * LDC Address
+         * IND
+         **/
+        // TODO: Proper error handling, don't throw an exception.
+        int address = symbolTable.unsafeGetAddress(name);
+        PCommand.LoadConstCommand loadAddress = new PCommand.LoadConstCommand(Literal.intLiteral(address));
+        PCommand.LoadIndirectCommand loadIndirect = new PCommand.LoadIndirectCommand();
+        return List.list(loadAddress, loadIndirect);
+
+    }
+
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-
         Var<?> var = (Var<?>) o;
-
-        if (!name.equals(var.name)) return false;
-        return type == var.type;
+        return name.equals(var.name) && type == var.type;
 
     }
     public int hashCode() {

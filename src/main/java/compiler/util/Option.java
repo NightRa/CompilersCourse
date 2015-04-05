@@ -28,6 +28,7 @@ public abstract class Option<A> {
     public abstract boolean isSome();
     public abstract A get();
     public abstract A getOrElse(A other);
+    public abstract A getOrError(String message);
     // B <: A => Option[B] <: Option[A]
     public abstract <B> Option<B> map(Function<A, B> f);
     public abstract <B> Option<B> flatMap(Function<A, Option<B>> f);
@@ -67,6 +68,9 @@ public abstract class Option<A> {
         public A getOrElse(A other) {
             return other;
         }
+        public A getOrError(String message) {
+            throw new RuntimeException(message);
+        }
         public <B> Option<B> map(Function<A, B> f) {
             return none();
         }
@@ -96,6 +100,9 @@ public abstract class Option<A> {
             return value;
         }
         public A getOrElse(A other) {
+            return value;
+        }
+        public A getOrError(String message) {
             return value;
         }
         public <B> Option<B> map(Function<A, B> f) {

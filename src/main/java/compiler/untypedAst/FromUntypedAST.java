@@ -63,7 +63,7 @@ public class FromUntypedAST {
             statements = parseStatements(content.right, symbolTable);
         }
         // ---------------------------------------------
-        return new Program(programName, declarations, statements, symbolTable);
+        return new Program(programName, declarations, statements);
     }
 
     public static HashMap<String, Var> createSymbolTable(List<Var> declarations) {

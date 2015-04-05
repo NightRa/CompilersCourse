@@ -1,8 +1,10 @@
 package compiler;
 
 import compiler.ast.Program;
+import compiler.pcode.PCommand;
 import compiler.untypedAst.AST;
 import compiler.untypedAst.FromUntypedAST;
+import compiler.util.List;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -18,6 +20,8 @@ public class Main {
         Scanner fileIn = new Scanner(System.in);
         AST ast = AST.createAST(fileIn);
         Program program = FromUntypedAST.fromUntyped(ast);
-        System.out.println(program);
+        List<PCommand> commands = program.genPCode();
+        String outPCode = Program.generateProgramString(commands);
+        System.out.println(outPCode);
     }
 }

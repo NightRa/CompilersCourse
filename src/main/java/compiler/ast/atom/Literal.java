@@ -1,12 +1,21 @@
 package compiler.ast.atom;
 
 import compiler.ast.PCodeType;
+import compiler.pcode.LabelGenerator;
+import compiler.pcode.PCommand;
+import compiler.pcode.SymbolTable;
+import compiler.pcode.ToPCodeString;
+import compiler.util.List;
 
 /*TODO: Wrap in option, make a safe casts from String to Literal values*/
-public abstract class Literal<A> extends Atom<A> {
+public abstract class Literal<A> extends Atom<A> implements ToPCodeString {
     public final String original;
     public final A value;
     public abstract PCodeType type();
+
+    public List<PCommand> genPCode(SymbolTable symbolTable, LabelGenerator labelGenerator) {
+        return List.<PCommand>single(new PCommand.LoadConstCommand(this));
+    }
 
     protected Literal(String original, A value) {
         this.original = original;
@@ -23,6 +32,9 @@ public abstract class Literal<A> extends Atom<A> {
     }
     public static IntLiteral intLiteral(String intValue) {
         return new IntLiteral(intValue, Integer.valueOf(intValue));
+    }
+    public static IntLiteral intLiteral(int intValue) {
+        return new IntLiteral(String.valueOf(intValue), intValue);
     }
     public static final class RealLiteral extends Literal<Double> {
         protected RealLiteral(String original, Double value) {
@@ -60,5 +72,9 @@ public abstract class Literal<A> extends Atom<A> {
     }
     public String toString() {
         return value.toString().toLowerCase();
+    }
+
+    public String toPCodeString() {
+        return original;
     }
 }

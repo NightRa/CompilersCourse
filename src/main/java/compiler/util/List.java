@@ -5,6 +5,7 @@ import java.util.Iterator;
 public abstract class List<A> implements Iterable<A> {
     public abstract boolean isEmpty();
     public abstract <B> List<B> map(Function<A,B> f);
+    public abstract <B> List<B> flatMap(Function<A, List<B>> f);
     public abstract A head();
     public abstract List<A> tail();
     public abstract List<A> append(List<A> other);
@@ -43,6 +44,9 @@ public abstract class List<A> implements Iterable<A> {
         public <B> List<B> map(Function<A, B> f) {
             return nil();
         }
+        public <B> List<B> flatMap(Function<A, List<B>> f) {
+            return nil();
+        }
         public A head() {
             throw new IllegalArgumentException("head() on empty list");
         }
@@ -75,6 +79,9 @@ public abstract class List<A> implements Iterable<A> {
         public <B> List<B> map(Function<A, B> f) {
             return cons(f.apply(head), tail.map(f));
         }
+        public <B> List<B> flatMap(Function<A, List<B>> f) {
+            return f.apply(head).append(tail.flatMap(f));
+        }
         public A head() {
             return head;
         }
@@ -89,8 +96,7 @@ public abstract class List<A> implements Iterable<A> {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             Cons<?> cons = (Cons<?>) o;
-            if (!head.equals(cons.head)) return false;
-            return tail.equals(cons.tail);
+            return head.equals(cons.head) && tail.equals(cons.tail);
 
         }
         public int hashCode() {
