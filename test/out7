@@ -1,0 +1,20 @@
+LDC 5
+LDC 1
+STO
+While0: 
+LDC 5
+IND
+LDC 10
+LES
+FJP AfterWhile0
+LDC 5
+IND
+PRINT
+LDC 5
+LDC 5
+IND
+LDC 1
+ADD
+STO
+UJP While0
+AfterWhile0: 

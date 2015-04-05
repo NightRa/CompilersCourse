@@ -1,0 +1,23 @@
+LDC 5
+LDC 10
+STO
+LDC False
+FJP Else0
+LDC 5
+LDC 5
+IND
+LDC 6
+ADD
+STO
+UJP AfterIf0
+Else0: 
+LDC 5
+LDC 10
+LDC 5
+IND
+MUL
+STO
+AfterIf0: 
+LDC 5
+IND
+PRINT
