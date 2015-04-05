@@ -21,7 +21,7 @@ public abstract class BinaryExpr<A, B, C> extends Expr<C> {
         /**
          * <Gen left  expr.>
          * <Gen right expr.>
-         * <Gen operation>
+         * Binary op.
          **/
         List<PCommand> leftCommands = left.genPCode(symbolTable, labelGenerator);
         List<PCommand> rightCommands = right.genPCode(symbolTable, labelGenerator);

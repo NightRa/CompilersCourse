@@ -19,7 +19,7 @@ public abstract class UnaryExpr<A> extends Expr<A> {
     public List<PCommand> genPCode(SymbolTable symbolTable, LabelGenerator labelGenerator) {
         /**
          * <Push inner expr.>
-         * <Push operation>
+         * Unary op.
          **/
         List<PCommand> inner = expr.genPCode(symbolTable, labelGenerator);
         List<PCommand> op = List.single(operation());

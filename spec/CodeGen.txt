@@ -3,21 +3,49 @@ Code generation:
   Expr: Generate code, which is equivalent to pushing the expression's value onto the stack - a single push, no other effect.
 
   Const: push the const.
+    LDC value
   Var: load the constant variable address, and load it pushing it into the stack.
+    LDC Address
+    IND
   Unary expression: push inner expr. and apply the operation, resulting in a new single value pushed.
+    <Push inner expr.>
+    Unary op.
   Binary expression: push first expr, push second expr, apply the op, consuming the 2 values, and pushing a single value of the expr. overall.
+    <Push left  expr.>
+    <Push right expr.>
+    Binary op.
 
   Statement: Starts with an empty stack, and ends with an empty stack.
 
   Print: push expr, consume the value.
+    <Push expr.>
+    Print
   If: push condition, consume condition with FalseJump to after the if block, with a label after the block.
+    <Push condition>
+    FalseJump AfterIfLabel
+    <Then block>
+    AfterIfLabel
   IfElse: push condition, consume condition with FalseJump to the else block, with a label on the else block, a label after the else block, and a unconditional jump from the end of the then block.
+    <Push condition>
+    FalseJump ElseLabel
+    <Then block>
+    UnconditionalJump AfterIfLabel
+    ElseLabel
+    <Else block>
+    AfterIfLabel
   While: push condition, consume condition, FalseJump to a label after the while block, label on the while condition, at the end of the while block, unconditional jump to the while condition.
+    WhileLabel
+    <Condition>
+    FalseJump AfterWhileLabel
+    <Body>
+    UnconditionalJump WhileLabel
+    AfterWhileLabel
   Assignment: push the variable's address, push the expression's value, then store inside the variable's address, which is constant throughout the program, as all variables are defined once and for all.
-
   An intermediate pass, assigning an address for each variable.
   data AddressedVar
-
+    Push var's address
+    Push expr.'s value
+    Store
 ----
 
 If:
