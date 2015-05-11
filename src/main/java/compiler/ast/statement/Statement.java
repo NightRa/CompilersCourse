@@ -4,13 +4,8 @@ import compiler.ast.PCodeType;
 import compiler.ast.atom.Literal;
 import compiler.ast.atom.Var;
 import compiler.ast.expr.Expr;
-import compiler.pcode.LabelGenerator;
-import compiler.pcode.PCodeGenable;
-import compiler.pcode.PCommand;
-import compiler.pcode.SymbolTable;
+import compiler.pcode.*;
 import compiler.util.*;
-
-import static compiler.pcode.Address.Label;
 
 public abstract class Statement implements PCodeGenable {
     public static Function<Statement, List<PCommand>> genCode(final SymbolTable symbolTable, final LabelGenerator labelGenerator) {

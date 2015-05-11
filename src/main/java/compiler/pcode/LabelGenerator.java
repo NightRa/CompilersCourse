@@ -10,8 +10,8 @@ public interface LabelGenerator {
      * WhileLabel
      * AfterWhileLabel
     **/
-    Address.Label nextAfterIfLabel();
-    Tuple2<Address.Label, Address.Label> nextIfElseLabels();
-    Tuple2<Address.Label, Address.Label> nextWhileAfterWhileLabels();
-    Tuple2<Address.Label, List<Address.Label>> nextSwitchEndAndSwitchCases(int amountOfCases);
+    Label nextAfterIfLabel();
+    Tuple2<Label, Label> nextIfElseLabels();
+    Tuple2<Label, Label> nextWhileAfterWhileLabels();
+    Tuple2<Label, List<Label>> nextSwitchEndAndSwitchCases(int amountOfCases);
 }

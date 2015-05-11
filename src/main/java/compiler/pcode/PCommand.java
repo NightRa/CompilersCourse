@@ -94,8 +94,8 @@ public abstract class PCommand implements ToPCodeString {
         }
     }
     public static final class FalseJumpCommand extends PCommand{
-        public final Address jumpAddress;
-        public FalseJumpCommand(Address jumpAddress) {
+        public final Label jumpAddress;
+        public FalseJumpCommand(Label jumpAddress) {
             this.jumpAddress = jumpAddress;
         }
 
@@ -104,8 +104,8 @@ public abstract class PCommand implements ToPCodeString {
         }
     }
     public static final class UnconditionalJumpCommand extends PCommand{
-        public final Address jumpAddress;
-        public UnconditionalJumpCommand(Address jumpAddress) {
+        public final Label jumpAddress;
+        public UnconditionalJumpCommand(Label jumpAddress) {
             this.jumpAddress = jumpAddress;
         }
         public String toPCodeString() {
@@ -113,8 +113,8 @@ public abstract class PCommand implements ToPCodeString {
         }
     }
     public static final class IndexedJump extends PCommand{
-        public final Address.Label label;
-        public IndexedJump(Address.Label label) {
+        public final Label label;
+        public IndexedJump(Label label) {
             this.label = label;
         }
         @Override
@@ -128,8 +128,8 @@ public abstract class PCommand implements ToPCodeString {
         }
     }
     public static final class LabelCommand extends PCommand{
-        public final Address.Label label;
-        public LabelCommand(Address.Label label) {
+        public final Label label;
+        public LabelCommand(Label label) {
             this.label = label;
         }
         public String toPCodeString() {

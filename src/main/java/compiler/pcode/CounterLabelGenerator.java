@@ -4,7 +4,6 @@ import compiler.util.Function;
 import compiler.util.List;
 import compiler.util.Tuple2;
 
-import static compiler.pcode.Address.Label;
 import static compiler.util.Tuple2.pair;
 
 public class CounterLabelGenerator implements LabelGenerator {
