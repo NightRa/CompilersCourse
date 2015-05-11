@@ -112,6 +112,16 @@ public abstract class PCommand implements ToPCodeString {
             return "UJP " + jumpAddress.toPCodeString();
         }
     }
+    public static final class IndexedJump extends PCommand{
+        public final Address.Label label;
+        public IndexedJump(Address.Label label) {
+            this.label = label;
+        }
+        @Override
+        public String toPCodeString() {
+            return "IXJ " + label.label;
+        }
+    }
     public static final class PrintCommand extends PCommand{
         public String toPCodeString() {
             return "PRINT";

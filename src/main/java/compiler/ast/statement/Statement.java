@@ -1,13 +1,16 @@
 package compiler.ast.statement;
 
+import compiler.ast.PCodeType;
 import compiler.ast.atom.Literal;
-import compiler.pcode.*;
 import compiler.ast.atom.Var;
 import compiler.ast.expr.Expr;
-import compiler.util.Function;
-import compiler.util.List;
-import compiler.util.Strings;
-import compiler.util.Tuple2;
+import compiler.pcode.LabelGenerator;
+import compiler.pcode.PCodeGenable;
+import compiler.pcode.PCommand;
+import compiler.pcode.SymbolTable;
+import compiler.util.*;
+
+import static compiler.pcode.Address.Label;
 
 public abstract class Statement implements PCodeGenable {
     public static Function<Statement, List<PCommand>> genCode(final SymbolTable symbolTable, final LabelGenerator labelGenerator) {
@@ -52,7 +55,7 @@ public abstract class Statement implements PCodeGenable {
         public String toString() {
             return blockToString("if(" + condition + ")", thenBody);
         }
-        public static List<PCommand> genIf(List<PCommand> condition, List<PCommand> then, Address.Label afterIfLabel) {
+        public static List<PCommand> genIf(List<PCommand> condition, List<PCommand> then, Label afterIfLabel) {
             /**
              * <Push condition>
              * FalseJump AfterIfLabel
@@ -70,7 +73,7 @@ public abstract class Statement implements PCodeGenable {
         public List<PCommand> genPCode(final SymbolTable symbolTable, final LabelGenerator labelGenerator) {
             List<PCommand> conditionBody = condition.genPCode(symbolTable, labelGenerator);
             List<PCommand> thenBody = this.thenBody.flatMap(genCode(symbolTable, labelGenerator));
-            Address.Label afterIfLabel = labelGenerator.nextAfterIfLabel();
+            Label afterIfLabel = labelGenerator.nextAfterIfLabel();
             return genIf(conditionBody, thenBody, afterIfLabel);
         }
     }
@@ -89,7 +92,7 @@ public abstract class Statement implements PCodeGenable {
                     blockToString("else", elseBody);
         }
 
-        public static List<PCommand> genIfElse(List<PCommand> condition, List<PCommand> thenBlock, List<PCommand> elseBlock, Address.Label elseLabel, Address.Label afterIfLabel) {
+        public static List<PCommand> genIfElse(List<PCommand> condition, List<PCommand> thenBlock, List<PCommand> elseBlock, Label elseLabel, Label afterIfLabel) {
             /**
              * <Push condition>
              * FalseJump ElseLabel
@@ -116,9 +119,9 @@ public abstract class Statement implements PCodeGenable {
             List<PCommand> conditionBody = condition.genPCode(symbolTable, labelGenerator);
             List<PCommand> thenBlock = thenBody.flatMap(genCode(symbolTable, labelGenerator));
             List<PCommand> elseBlock = elseBody.flatMap(genCode(symbolTable, labelGenerator));
-            Tuple2<Address.Label, Address.Label> labels = labelGenerator.nextIfElseLabels();
-            Address.Label afterIfLabel = labels.first;
-            Address.Label elseLabel = labels.second;
+            Tuple2<Label, Label> labels = labelGenerator.nextIfElseLabels();
+            Label afterIfLabel = labels.first;
+            Label elseLabel = labels.second;
             return genIfElse(conditionBody, thenBlock, elseBlock, elseLabel, afterIfLabel);
         }
     }
@@ -134,7 +137,7 @@ public abstract class Statement implements PCodeGenable {
         public String toString() {
             return blockToString("while(" + condition.toString() + ")", body);
         }
-        public static List<PCommand> genWhile(List<PCommand> condition, List<PCommand> body, Address.Label whileLabel, Address.Label afterWhileLabel) {
+        public static List<PCommand> genWhile(List<PCommand> condition, List<PCommand> body, Label whileLabel, Label afterWhileLabel) {
             /**
              * WhileLabel
              * <Condition>
@@ -157,9 +160,9 @@ public abstract class Statement implements PCodeGenable {
         public List<PCommand> genPCode(SymbolTable symbolTable, LabelGenerator labelGenerator) {
             List<PCommand> conditionBody = condition.genPCode(symbolTable, labelGenerator);
             List<PCommand> bodyBlock = body.flatMap(genCode(symbolTable, labelGenerator));
-            Tuple2<Address.Label, Address.Label> labels = labelGenerator.nextWhileAfterWhileLabels();
-            Address.Label whileLabel = labels.first;
-            Address.Label afterWhileLabel = labels.second;
+            Tuple2<Label, Label> labels = labelGenerator.nextWhileAfterWhileLabels();
+            Label whileLabel = labels.first;
+            Label afterWhileLabel = labels.second;
             return genWhile(conditionBody, bodyBlock, whileLabel, afterWhileLabel);
         }
     }
@@ -187,6 +190,75 @@ public abstract class Statement implements PCodeGenable {
             List<PCommand> exprValue = value.genPCode(symbolTable, labelGenerator);
             PCommand store = new PCommand.StoreCommand();
             return List.cons(loadAddress, exprValue.append(List.single(store)));
+        }
+    }
+    public static final class Switch extends Statement {
+        public static final class Case {
+            public final int caseNum;
+            public final List<Statement> body;
+            public Case(int caseNum, List<Statement> body) {
+                this.caseNum = caseNum;
+                this.body = body;
+            }
+            @Override
+            public String toString() {
+                return blockToString("case " + caseNum, body);
+            }
+        }
+
+        public final Expr<PCodeType.Int> expr;
+        // ATTENTION!
+        // Cases must be in order, starting from 1, and going up 1 by 1, for example, 1,2,3,...,10.
+        public final List<Case> cases;
+        public Switch(Expr<PCodeType.Int> expr, List<Case> cases) {
+            this.expr = expr;
+            this.cases = cases;
+        }
+        public static List<PCommand> genSwitch(List<PCommand> expr, List<Tuple2<Label, List<PCommand>>> cases, final Label switchEndLabel) {
+            List<PCommand> negExpr = expr.append(List.<PCommand>single(new PCommand.NEGCommand()));
+            List<PCommand> IXJSwitchEnd = List.<PCommand>single(new PCommand.IndexedJump(switchEndLabel));
+            List<PCommand> casesCode = cases.flatMap(new Function<Tuple2<Label, List<PCommand>>, List<PCommand>>() {
+                public List<PCommand> apply(Tuple2<Label, List<PCommand>> labelBlock) {
+                    return List.cons(new PCommand.LabelCommand(labelBlock.first), labelBlock.second)
+                            .append(List.<PCommand>single(new PCommand.UnconditionalJumpCommand(switchEndLabel)));
+                }
+            });
+            List<PCommand> reverseJumps = List.reverse(cases).map(new Function<Tuple2<Label, List<PCommand>>, PCommand>() {
+                public PCommand apply(Tuple2<Label, List<PCommand>> block) {
+                    return new PCommand.UnconditionalJumpCommand(block.first);
+                }
+            });
+            List<PCommand> switchEndCommand = List.<PCommand>single(new PCommand.LabelCommand(switchEndLabel));
+            return negExpr
+                    .append(IXJSwitchEnd)
+                    .append(casesCode)
+                    .append(reverseJumps)
+                    .append(switchEndCommand);
+        }
+        @Override
+        public List<PCommand> genPCode(final SymbolTable symbolTable, final LabelGenerator labelGenerator) {
+            List<PCommand> exprBody = expr.genPCode(symbolTable, labelGenerator);
+            Tuple2<Label, List<Label>> labels = labelGenerator.nextSwitchEndAndSwitchCases(cases.length);
+            Label switchEndLabel = labels.first;
+            List<Label> casesLabels = labels.second;
+            List<Tuple2<Label, List<PCommand>>> casesBodies = List.zipWith(cases, casesLabels,
+                    new Function2<Case, Label, Tuple2<Label, List<PCommand>>>() {
+                        @Override
+                        public Tuple2<Label, List<PCommand>> apply(Case _case, Label caseLabel) {
+                            List<Statement> caseBody = _case.body;
+                            List<PCommand> casePCommandBody = caseBody.flatMap(new Function<Statement, List<PCommand>>() {
+                                public List<PCommand> apply(Statement statement) {
+                                    return statement.genPCode(symbolTable, labelGenerator);
+                                }
+                            });
+                            return Tuple2.pair(caseLabel, casePCommandBody);
+                        }
+                    });
+            return genSwitch(exprBody, casesBodies, switchEndLabel);
+        }
+        @Override
+        public String toString() {
+            return blockToString("switch(" + expr.toString() + ")", cases);
         }
     }
 

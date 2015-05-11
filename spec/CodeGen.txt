@@ -93,3 +93,12 @@ Usage:
 
 ----
 
+Switch:
+expr of type Int
+A list of cases, in each, a list of statements.
+  Cases in order.
+1. push eval (-expr)
+2. IXJ switch_end
+3*. Label case_i: content, UJP switch_end
+4*. UJP case_n-i (in reverse order)
+5. Label switch_end.

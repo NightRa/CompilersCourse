@@ -13,6 +13,7 @@ import compiler.errors.StatementUnsupportedException;
 import compiler.util.Function;
 import compiler.util.List;
 import compiler.util.Option;
+import compiler.util.Tuple2;
 
 import java.util.HashMap;
 
@@ -41,7 +42,7 @@ public class FromUntypedAST {
         final HashMap<String, Var> symbolTable;
         // ---------------------------------------------
         AST scope = content.left;
-        if(scope == null){
+        if (scope == null) {
             declarations = List.nil();
             symbolTable = new HashMap<>();
         } else {
@@ -57,7 +58,7 @@ public class FromUntypedAST {
             symbolTable = createSymbolTable(declarations);
         }
         // ---------------------------------------------
-        if(content.right == null){
+        if (content.right == null) {
             statements = List.nil();
         } else {
             statements = parseStatements(content.right, symbolTable);
@@ -68,13 +69,13 @@ public class FromUntypedAST {
 
     public static HashMap<String, Var> createSymbolTable(List<Var> declarations) {
         HashMap<String, Var> symbolTable = new HashMap<>();
-        for(Var var: declarations) {
+        for (Var var : declarations) {
             symbolTable.put(var.name, var);
         }
         return symbolTable;
     }
 
-    public static List<Statement> parseStatements(AST statementsAST, final HashMap<String,Var> symbolTable){
+    public static List<Statement> parseStatements(AST statementsAST, final HashMap<String, Var> symbolTable) {
         List<AST> statementsASTs = parseASTList(statementsAST, "StatementsList");
         return statementsASTs.map(new Function<AST, Statement>() {
             public Statement apply(AST value) {
@@ -95,11 +96,11 @@ public class FromUntypedAST {
 
     @SuppressWarnings("unchecked")
     public static Statement parseStatement(AST statementAST, HashMap<String, Var> symbolTable) {
-        switch (statementAST.label){
+        switch (statementAST.label) {
             case "Print":
                 return new Statement.Print(parseExpression(statementAST.left, symbolTable));
             case "If":
-                if(statementAST.right.label.equals("Else")){
+                if (statementAST.right.label.equals("Else")) {
                     return new Statement.IfElse(
                             // TODO: Typecheck that this is boolean:
                             parseExpression(statementAST.left, symbolTable),
@@ -121,22 +122,45 @@ public class FromUntypedAST {
                         parseVarReference(statementAST.left, symbolTable).get(),
                         parseExpression(statementAST.right, symbolTable)
                 );
+            case "Switch":
+                return new Statement.Switch(
+                        parseExpression(statementAST.left, symbolTable),
+                        parseSwitchCases(statementAST.right, symbolTable)
+                );
             default:
                 throw new StatementUnsupportedException(statementAST.label);
         }
 
     }
 
+    public static Tuple2<Integer, List<Statement>> parseCase(AST caseAST, HashMap<String, Var> symbolTable) {
+        assert caseAST.label.equals("Case");
+        int caseNumber = parseConstInt(caseAST.left);
+        List<Statement> statements = parseStatements(caseAST.right, symbolTable);
+        return Tuple2.pair(caseNumber, statements);
+    }
+
+    public static List<Statement.Switch.Case> parseSwitchCases(AST casesList, HashMap<String, Var> symbolTable) {
+        if (casesList == null) {
+            return List.nil();
+        } else {
+            assert casesList.label.equals("CaseList");
+            Tuple2<Integer, List<Statement>> caseStructure = parseCase(casesList.right, symbolTable);
+            Statement.Switch.Case _case = new Statement.Switch.Case(caseStructure.first, caseStructure.second);
+            return parseSwitchCases(casesList.left, symbolTable).append(List.single(_case));
+        }
+    }
+
     public static Expr parseExpression(AST ast, HashMap<String, Var> symbolTable) {
         //noinspection unchecked
-        return ((Option<Expr>) (Object)parseAtom(ast,symbolTable))
-                .orElse((Option<Expr>)(Object)parseUnary(ast, symbolTable))
-                .orElse((Option<Expr>)(Object)parseBinaryExpr(ast,symbolTable)).get();
+        return ((Option<Expr>) (Object) parseAtom(ast, symbolTable))
+                .orElse((Option<Expr>) (Object) parseUnary(ast, symbolTable))
+                .orElse((Option<Expr>) (Object) parseBinaryExpr(ast, symbolTable)).get();
     }
 
     @SuppressWarnings("unchecked")
     public static Option<UnaryExpr> parseUnary(AST exprAST, HashMap<String, Var> symbolTable) {
-        switch (exprAST.label){
+        switch (exprAST.label) {
             case "Negative":
                 return new Some<UnaryExpr>(new UnaryExpr.Neg(parseExpression(exprAST.left, symbolTable)));
             case "Not":
@@ -187,7 +211,7 @@ public class FromUntypedAST {
         return ((Option<Atom>) (Object) parseConst(ast)).orElse((Option<Atom>) (Object) parseVarReference(ast, symbolTable));
     }
 
-    public static Option<Var> parseVarReference(AST ast, final HashMap<String,Var> symbolTable){
+    public static Option<Var> parseVarReference(AST ast, final HashMap<String, Var> symbolTable) {
         return parseIdentifier(ast).flatMap(new Function<String, Option<Var>>() {
             public Option<Var> apply(String name) {
                 if (symbolTable.containsKey(name)) {
@@ -197,6 +221,11 @@ public class FromUntypedAST {
                 }
             }
         });
+    }
+
+    public static int parseConstInt(AST ast) {
+        assert ast.label.equals("ConstInt");
+        return Integer.parseInt(ast.left.label);
     }
 
     /*TODO: Throws an exception if parsing label fails*/
@@ -215,9 +244,9 @@ public class FromUntypedAST {
     }
 
     public static Option<String> parseIdentifier(AST ast) {
-        if(ast.left == null){
+        if (ast.left == null) {
             return none();
-        } else{
+        } else {
             return iff(ast.label.equals("Identifier"), ast.left.label);
         }
     }

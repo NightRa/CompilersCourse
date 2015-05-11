@@ -3,8 +3,12 @@ package compiler.util;
 import java.util.Iterator;
 
 public abstract class List<A> implements Iterable<A> {
+    public final int length;
+    protected List(int length) {
+        this.length = length;
+    }
     public abstract boolean isEmpty();
-    public abstract <B> List<B> map(Function<A,B> f);
+    public abstract <B> List<B> map(Function<A, B> f);
     public abstract <B> List<B> flatMap(Function<A, List<B>> f);
     public abstract A head();
     public abstract List<A> tail();
@@ -13,24 +17,40 @@ public abstract class List<A> implements Iterable<A> {
     public static <A> List<A> nil() {
         return new List.Nil<>();
     }
-    public static <A> List<A> cons(A head, List<A> tail){
-        return new List.Cons<>(head,tail);
+    public static <A> List<A> cons(A head, List<A> tail) {
+        return new List.Cons<>(head, tail);
     }
-    public static <A> List<A> single(A head){
+    public static <A> List<A> single(A head) {
         return List.cons(head, List.<A>nil());
     }
 
+    public static List<Integer> range(int from, int to) {
+        if (from <= to) {
+            return cons(from, range(from + 1, to));
+        } else {
+            return nil();
+        }
+    }
+
+    public static <A, B, C> List<C> zipWith(List<A> as, List<B> bs, Function2<A, B, C> f) {
+        if (as.isEmpty() || bs.isEmpty()) {
+            return nil();
+        } else {
+            return cons(f.apply(as.head(), bs.head()), zipWith(as.tail(), bs.tail(), f));
+        }
+    }
+
     @SafeVarargs
-    public static <A> List<A> list(A... as){
+    public static <A> List<A> list(A... as) {
         List<A> rev = nil();
-        for (A a: as){
+        for (A a : as) {
             rev = cons(a, rev);
         }
         return reverse(rev);
     }
-    public static <A> List<A> reverse(List<A> list){
+    public static <A> List<A> reverse(List<A> list) {
         List<A> acc = nil();
-        while(!list.isEmpty()){
+        while (!list.isEmpty()) {
             acc = cons(list.head(), acc);
             list = list.tail();
         }
@@ -38,6 +58,9 @@ public abstract class List<A> implements Iterable<A> {
     }
 
     public static final class Nil<A> extends List<A> {
+        public Nil() {
+            super(0);
+        }
         public boolean isEmpty() {
             return true;
         }
@@ -64,11 +87,12 @@ public abstract class List<A> implements Iterable<A> {
             return 0;
         }
     }
-    public static final class Cons<A> extends List<A>{
+    public static final class Cons<A> extends List<A> {
         public final A head;
         public final List<A> tail;
 
         public Cons(A head, List<A> tail) {
+            super(tail.length + 1);
             this.head = head;
             this.tail = tail;
         }
