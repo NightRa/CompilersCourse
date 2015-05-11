@@ -17,6 +17,7 @@ import compiler.util.Tuple2;
 
 import java.util.HashMap;
 
+import static compiler.ast.PCodeType.*;
 import static compiler.util.Option.*;
 
 /*TODO: Unsafe fromUntypedAST - throws exceptions all over the place :)*/
@@ -48,13 +49,7 @@ public class FromUntypedAST {
         } else {
             assert scope.label.equals("Scope");
             // ---------------------------------------------
-            List<AST> declarationASTs = parseASTList(scope.left, "DeclarationsList");
-
-            declarations = declarationASTs.map(new Function<AST, Var>() {
-                public Var apply(AST value) {
-                    return parseDeclaration(value);
-                }
-            });
+            declarations = parseDeclarationList(scope);
             symbolTable = createSymbolTable(declarations);
         }
         // ---------------------------------------------
@@ -75,6 +70,15 @@ public class FromUntypedAST {
         return symbolTable;
     }
 
+    public static List<Var> parseDeclarationList(AST declarationList) {
+        List<AST> declarationASTs = parseASTList(declarationList.left, "DeclarationsList");
+        return declarationASTs.map(new Function<AST, Var>() {
+            public Var apply(AST value) {
+                return parseDeclaration(value);
+            }
+        });
+    }
+
     public static List<Statement> parseStatements(AST statementsAST, final HashMap<String, Var> symbolTable) {
         List<AST> statementsASTs = parseASTList(statementsAST, "StatementsList");
         return statementsASTs.map(new Function<AST, Statement>() {
@@ -90,7 +94,7 @@ public class FromUntypedAST {
         AST identAST = varAST.left;
         assert identAST.label.equals("Identifier");
         String identifier = parseIdentifier(identAST).get();
-        PCodeType type = parseType(varAST.right.label);
+        PCodeType type = parseType(varAST.right);
         return new Var(identifier, type);
     }
 
@@ -251,17 +255,86 @@ public class FromUntypedAST {
         }
     }
 
-    public static PCodeType parseType(String type) {
-        switch (type) {
+    public static Option<PrimitiveType> parsePrimitiveType(AST type) {
+        switch (type.label) {
             case "Bool":
-                return PCodeType.Bool;
+                return some(Bool);
             case "Int":
-                return PCodeType.Int;
+                return some(Int);
             case "Real":
-                return PCodeType.Real;
+                return some(Real);
             default:
-                throw new IllegalArgumentException("parseType(" + type + "), illegal type name.");
+                return none();
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Option<ReferenceType> parseRefType(AST type) {
+        Option<String> ident = parseIdentifier(type);
+        Option<ReferenceType> identType = ident.map(new Function<String, ReferenceType>() {
+            public ReferenceType apply(String identName) {
+                return new IdentifierType(identName);
+            }
+        });
+        return identType
+                .orElse(
+                        (Option<ReferenceType>) (Object)
+                                parsePrimitiveType(type));
+    }
+
+    public static Option<Pointer> parsePointer(AST type) {
+        if (type.label.equals("Pointer")) {
+            return parseRefType(type.left).map(new Function<ReferenceType, Pointer>() {
+                public Pointer apply(ReferenceType refType) {
+                    return new PCodeType.Pointer(refType);
+                }
+            });
+        } else {
+            return none();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Option<BaseType> parseBaseType(AST type) {
+        return ((Option<BaseType>) (Object) parsePointer(type))
+                .orElse((Option<BaseType>) (Object) parseRefType(type));
+    }
+
+    public static Option<RecordType> parseRecord(AST type) {
+        if (type.label.equals("Record")) {
+            List<Var> fields = parseDeclarationList(type.left);
+            return some(new RecordType(fields));
+        } else {
+            return none();
+        }
+    }
+
+    public static Option<ArrayType> parseArrayType(AST type) {
+        if (type.label.equals("Array")) {
+            ReferenceType ofType = parseRefType(type.right).getOrError("No 'of' type in Array type.");
+            List<ArrayType.Bounds> bounds = parseASTList(type.left, "RangeList").map(new Function<AST, ArrayType.Bounds>() {
+                @Override
+                public ArrayType.Bounds apply(AST bound) {
+                    return parseBounds(bound);
+                }
+            });
+            return some(new ArrayType(bounds, ofType));
+        } else {
+            return none();
+        }
+    }
+
+    public static ArrayType.Bounds parseBounds(AST ast) {
+        assert ast.label.equals("Range");
+        return new ArrayType.Bounds(parseConstInt(ast.left), parseConstInt(ast.right));
+    }
+
+    @SuppressWarnings("unchecked")
+    public static PCodeType parseType(AST type) {
+        return ((Option<PCodeType>) (Object) parseBaseType(type))
+                .orElse((Option<PCodeType>) (Object) parseRecord(type))
+                .orElse((Option<PCodeType>) (Object) parseArrayType(type))
+                .getOrError("Unsupported type: " + type.label + ", tree: " + type.toString());
     }
 
     public static List<AST> parseASTList(AST astList, String nodeName) {

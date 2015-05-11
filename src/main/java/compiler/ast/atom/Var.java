@@ -4,6 +4,7 @@ import compiler.ast.PCodeType;
 import compiler.pcode.LabelGenerator;
 import compiler.pcode.PCommand;
 import compiler.pcode.SymbolTable;
+import compiler.util.Function;
 import compiler.util.List;
 
 public class Var<A> extends Atom<A> {
@@ -45,6 +46,12 @@ public class Var<A> extends Atom<A> {
         return List.list(loadAddress, loadIndirect);
 
     }
+
+    public static final Function<Var, String> varName = new Function<Var, String>() {
+        public String apply(Var var) {
+            return var.name;
+        }
+    };
 
     public boolean equals(Object o) {
         if (this == o) return true;

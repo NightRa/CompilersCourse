@@ -24,6 +24,22 @@ public abstract class List<A> implements Iterable<A> {
         return List.cons(head, List.<A>nil());
     }
 
+    public static int sum(Iterable<Integer> list) {
+        int acc = 0;
+        for (int a : list) {
+            acc += a;
+        }
+        return acc;
+    }
+
+    public static int mult(Iterable<Integer> list) {
+        int acc = 1;
+        for (int a : list) {
+            acc *= a;
+        }
+        return acc;
+    }
+
     public static List<Integer> range(int from, int to) {
         if (from <= to) {
             return cons(from, range(from + 1, to));
