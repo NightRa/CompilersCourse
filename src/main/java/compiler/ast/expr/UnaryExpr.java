@@ -9,7 +9,7 @@ import compiler.util.List;
 /**
  * A function A => A
  */
-public abstract class UnaryExpr<A> extends Expr<A> {
+public abstract class UnaryExpr<A> implements Expr<A> {
     public final Expr<A> expr;
     protected abstract PCommand operation();
 

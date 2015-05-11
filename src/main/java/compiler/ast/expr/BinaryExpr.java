@@ -11,7 +11,7 @@ import static compiler.ast.expr.UnaryExpr.precedenceParens;
 /**
  * A function (A,B) => C
  */
-public abstract class BinaryExpr<A, B, C> extends Expr<C> {
+public abstract class BinaryExpr<A, B, C> implements Expr<C> {
     public final Expr<A> left;
     public final Expr<B> right;
     public final String symbol;
