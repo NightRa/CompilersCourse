@@ -1,7 +1,6 @@
 package compiler.ast.atom;
 
 import compiler.ast.PCodeType;
-import compiler.ast.lhs.LHS;
 import compiler.pcode.LabelGenerator;
 import compiler.pcode.PCommand;
 import compiler.pcode.SymbolTable;

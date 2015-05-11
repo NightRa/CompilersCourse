@@ -2,15 +2,23 @@ Program = (programName: String), Content
 Content = Declerations, Statements
 -----
 Declerations = [Var]
-Var = (name: String), (type: PType)
-PType = Boolean | Int | Real
+Var = (name: String), (type: Type)
+LHS = Var | ArrayAccess (Var, [Int]) | PointerDeref Var | RecordAccess (LHS, Var)
+// Base for the RecordAccess recursion is Var.
+-----
+Type = BaseType | Record [Var] | Array ([Bounds], RefType)
+BaseType = RefType | Pointer RefType
+RefType = Primitive | IdentifierType String
+Primitive = Int | Real | Boolean
 -----
 Statements = [Statement]
-Statement = Print Expr           |
-            If Expr Statements   | 
+Statement = Print Expr            |
+            If Expr Statements    | 
             IfElse Expr (then: Statements) (else: Statements) |
-            While Expr Statements|
-            Assignment Var Expr
+            While Expr Statements |
+            Assignment Addressed Expr |
+            Switch Expr [Case]
+Case = Case (caseNum: Int, Statements)            
 ----
 Expr = + Expr Expr | 
        - Expr Expr |
@@ -29,5 +37,5 @@ Expr = + Expr Expr |
        ! Expr |
        AtomExpr Atom
 ----
-Atom = VarAtom Var | LiteralAtom Literal 
+Atom = VarAtom Var | LiteralAtom Literal | PointerDeref | RecordAccess | ArrayAccess
 Literal = Int int | Real double | True | False

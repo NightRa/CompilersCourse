@@ -1,8 +1,8 @@
 package compiler.ast.statement;
 
 import compiler.ast.PCodeType;
+import compiler.ast.atom.LHS;
 import compiler.ast.expr.Expr;
-import compiler.ast.lhs.LHS;
 import compiler.pcode.Label;
 import compiler.pcode.LabelGenerator;
 import compiler.pcode.PCommand;
