@@ -17,14 +17,14 @@ public abstract class BinaryExpr<A, B, C> extends Expr<C> {
     public final String symbol;
 
     protected abstract PCommand operation();
-    public List<PCommand> genPCode(SymbolTable symbolTable, LabelGenerator labelGenerator) {
+    public List<PCommand> evaluateExpr(SymbolTable symbolTable, LabelGenerator labelGenerator) {
         /**
          * <Gen left  expr.>
          * <Gen right expr.>
          * Binary op.
          **/
-        List<PCommand> leftCommands = left.genPCode(symbolTable, labelGenerator);
-        List<PCommand> rightCommands = right.genPCode(symbolTable, labelGenerator);
+        List<PCommand> leftCommands = left.evaluateExpr(symbolTable, labelGenerator);
+        List<PCommand> rightCommands = right.evaluateExpr(symbolTable, labelGenerator);
         List<PCommand> operation = List.single(operation());
         // TODO: Change list to something with a faster append, O(n) here!
         return leftCommands.append(rightCommands).append(operation);

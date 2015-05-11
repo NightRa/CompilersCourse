@@ -1,24 +1,29 @@
 package compiler.ast.statement;
 
 import compiler.ast.PCodeType;
-import compiler.ast.atom.Literal;
-import compiler.ast.atom.Var;
 import compiler.ast.expr.Expr;
-import compiler.pcode.*;
+import compiler.ast.lhs.LHS;
+import compiler.pcode.Label;
+import compiler.pcode.LabelGenerator;
+import compiler.pcode.PCommand;
+import compiler.pcode.SymbolTable;
 import compiler.util.*;
 
-public abstract class Statement implements PCodeGenable {
+public abstract class Statement {
     public static Function<Statement, List<PCommand>> genCode(final SymbolTable symbolTable, final LabelGenerator labelGenerator) {
         return new Function<Statement, List<PCommand>>() {
             @Override
             public List<PCommand> apply(Statement statement) {
-                return statement.genPCode(symbolTable, labelGenerator);
+                return statement.evaluateStatement(symbolTable, labelGenerator);
             }
         };
     }
 
+    // Invariant: Stack before = Stack After
+    public abstract List<PCommand> evaluateStatement(SymbolTable symbolTable, final LabelGenerator labelGenerator);
+
     public static final class Print extends Statement {
-        public final Expr/*existential*/ expr;
+        public final Expr<?>/*existential*/ expr;
 
         public Print(Expr expr) {
             this.expr = expr;
@@ -28,12 +33,12 @@ public abstract class Statement implements PCodeGenable {
             return "print(" + expr.toString() + ")";
         }
 
-        public List<PCommand> genPCode(SymbolTable symbolTable, LabelGenerator labelGenerator) {
+        public List<PCommand> evaluateStatement(SymbolTable symbolTable, LabelGenerator labelGenerator) {
             /**
              * <Push expr.>
              * Print command
              **/
-            List<PCommand> inner = expr.genPCode(symbolTable, labelGenerator);
+            List<PCommand> inner = expr.evaluateExpr(symbolTable, labelGenerator);
             List<PCommand> print = List.<PCommand>single(new PCommand.PrintCommand());
             return inner.append(print);
         }
@@ -65,8 +70,8 @@ public abstract class Statement implements PCodeGenable {
                     .append(labelCommand);
         }
 
-        public List<PCommand> genPCode(final SymbolTable symbolTable, final LabelGenerator labelGenerator) {
-            List<PCommand> conditionBody = condition.genPCode(symbolTable, labelGenerator);
+        public List<PCommand> evaluateStatement(final SymbolTable symbolTable, final LabelGenerator labelGenerator) {
+            List<PCommand> conditionBody = condition.evaluateExpr(symbolTable, labelGenerator);
             List<PCommand> thenBody = this.thenBody.flatMap(genCode(symbolTable, labelGenerator));
             Label afterIfLabel = labelGenerator.nextAfterIfLabel();
             return genIf(conditionBody, thenBody, afterIfLabel);
@@ -110,8 +115,8 @@ public abstract class Statement implements PCodeGenable {
                     .append(afterIfLabelCommand);
         }
 
-        public List<PCommand> genPCode(SymbolTable symbolTable, LabelGenerator labelGenerator) {
-            List<PCommand> conditionBody = condition.genPCode(symbolTable, labelGenerator);
+        public List<PCommand> evaluateStatement(SymbolTable symbolTable, LabelGenerator labelGenerator) {
+            List<PCommand> conditionBody = condition.evaluateExpr(symbolTable, labelGenerator);
             List<PCommand> thenBlock = thenBody.flatMap(genCode(symbolTable, labelGenerator));
             List<PCommand> elseBlock = elseBody.flatMap(genCode(symbolTable, labelGenerator));
             Tuple2<Label, Label> labels = labelGenerator.nextIfElseLabels();
@@ -152,8 +157,8 @@ public abstract class Statement implements PCodeGenable {
                     .append(recheckWhileCondition)
                     .append(afterWhileLabelCommand);
         }
-        public List<PCommand> genPCode(SymbolTable symbolTable, LabelGenerator labelGenerator) {
-            List<PCommand> conditionBody = condition.genPCode(symbolTable, labelGenerator);
+        public List<PCommand> evaluateStatement(SymbolTable symbolTable, LabelGenerator labelGenerator) {
+            List<PCommand> conditionBody = condition.evaluateExpr(symbolTable, labelGenerator);
             List<PCommand> bodyBlock = body.flatMap(genCode(symbolTable, labelGenerator));
             Tuple2<Label, Label> labels = labelGenerator.nextWhileAfterWhileLabels();
             Label whileLabel = labels.first;
@@ -162,29 +167,30 @@ public abstract class Statement implements PCodeGenable {
         }
     }
     public static final class Assignment<A> extends Statement {
-        public final Var<A> var;
+        public final LHS<A> lhs;
         public final Expr<A> value;
 
-        public Assignment(Var<A> var, Expr<A> value) {
-            this.var = var;
+        public Assignment(LHS<A> lhs, Expr<A> value) {
+            this.lhs = lhs;
             this.value = value;
         }
 
         public String toString() {
-            return var.name + " = " + value.toString();
+            return lhs.toString() + " = " + value.toString();
         }
 
-        public List<PCommand> genPCode(SymbolTable symbolTable, LabelGenerator labelGenerator) {
+        public List<PCommand> evaluateStatement(SymbolTable symbolTable, LabelGenerator labelGenerator) {
             /**
              * Push var's address
              * Push expr.'s value
              * Store
              **/
-            int address = symbolTable.unsafeGetAddress(var.name);
-            PCommand loadAddress = new PCommand.LoadConstCommand(Literal.intLiteral(address));
-            List<PCommand> exprValue = value.genPCode(symbolTable, labelGenerator);
+            List<PCommand> loadLHSAddress = lhs.loadAddress(symbolTable, labelGenerator);
+            List<PCommand> exprValue = value.evaluateExpr(symbolTable, labelGenerator);
             PCommand store = new PCommand.StoreCommand();
-            return List.cons(loadAddress, exprValue.append(List.single(store)));
+            return loadLHSAddress
+                    .append(exprValue)
+                    .append(List.single(store));
         }
     }
     public static final class Switch extends Statement {
@@ -231,8 +237,8 @@ public abstract class Statement implements PCodeGenable {
                     .append(switchEndCommand);
         }
         @Override
-        public List<PCommand> genPCode(final SymbolTable symbolTable, final LabelGenerator labelGenerator) {
-            List<PCommand> exprBody = expr.genPCode(symbolTable, labelGenerator);
+        public List<PCommand> evaluateStatement(final SymbolTable symbolTable, final LabelGenerator labelGenerator) {
+            List<PCommand> exprBody = expr.evaluateExpr(symbolTable, labelGenerator);
             Tuple2<Label, List<Label>> labels = labelGenerator.nextSwitchEndAndSwitchCases(cases.length);
             Label switchEndLabel = labels.first;
             List<Label> casesLabels = labels.second;
@@ -243,7 +249,7 @@ public abstract class Statement implements PCodeGenable {
                             List<Statement> caseBody = _case.body;
                             List<PCommand> casePCommandBody = caseBody.flatMap(new Function<Statement, List<PCommand>>() {
                                 public List<PCommand> apply(Statement statement) {
-                                    return statement.genPCode(symbolTable, labelGenerator);
+                                    return statement.evaluateStatement(symbolTable, labelGenerator);
                                 }
                             });
                             return Tuple2.pair(caseLabel, casePCommandBody);

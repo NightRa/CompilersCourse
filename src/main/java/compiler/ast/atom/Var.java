@@ -1,13 +1,14 @@
 package compiler.ast.atom;
 
 import compiler.ast.PCodeType;
+import compiler.ast.lhs.LHS;
 import compiler.pcode.LabelGenerator;
 import compiler.pcode.PCommand;
 import compiler.pcode.SymbolTable;
 import compiler.util.Function;
 import compiler.util.List;
 
-public class Var<A> extends Atom<A> {
+public class Var<A> extends Atom<A> implements LHS<A> {
     public final String name;
     public final PCodeType type;
 
@@ -34,7 +35,7 @@ public class Var<A> extends Atom<A> {
     /**
      * Var is an expression, generate the code which puts the value of the var into the stack.
      */
-    public List<PCommand> genPCode(SymbolTable symbolTable, LabelGenerator labelGenerator) {
+    public List<PCommand> evaluateExpr(SymbolTable symbolTable, LabelGenerator labelGenerator) {
         /**
          * LDC Address
          * IND
@@ -45,6 +46,13 @@ public class Var<A> extends Atom<A> {
         PCommand.LoadIndirectCommand loadIndirect = new PCommand.LoadIndirectCommand();
         return List.list(loadAddress, loadIndirect);
 
+    }
+
+    @Override
+    public List<PCommand> loadAddress(SymbolTable symbolTable, LabelGenerator labelGenerator) {
+        int address = symbolTable.unsafeGetAddress(this.name);
+        PCommand loadAddress = new PCommand.LoadConstCommand(Literal.intLiteral(address));
+        return List.single(loadAddress);
     }
 
     public static final Function<Var, String> varName = new Function<Var, String>() {

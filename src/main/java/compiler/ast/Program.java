@@ -2,14 +2,15 @@ package compiler.ast;
 
 import compiler.ast.atom.Var;
 import compiler.ast.statement.Statement;
-import compiler.pcode.*;
+import compiler.pcode.CounterLabelGenerator;
+import compiler.pcode.LabelGenerator;
+import compiler.pcode.PCommand;
+import compiler.pcode.SymbolTable;
 import compiler.util.Function;
 import compiler.util.List;
 import compiler.util.Strings;
 
-import java.util.HashMap;
-
-public class Program implements PCodeGenable {
+public class Program {
     public final String programName;
     public final List<Var> declarations;
     public final List<Statement> statements;
@@ -55,6 +56,7 @@ public class Program implements PCodeGenable {
         LabelGenerator labelGenerator = new CounterLabelGenerator();
         return genPCode(symbolTable, labelGenerator);
     }
+
     public List<PCommand> genPCode(){
         return genPCode(startingAddress);
     }

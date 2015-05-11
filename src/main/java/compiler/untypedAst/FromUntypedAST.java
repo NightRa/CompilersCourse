@@ -155,8 +155,8 @@ public class FromUntypedAST {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public static Expr parseExpression(AST ast, HashMap<String, Var> symbolTable) {
-        //noinspection unchecked
         return ((Option<Expr>) (Object) parseAtom(ast, symbolTable))
                 .orElse((Option<Expr>) (Object) parseUnary(ast, symbolTable))
                 .orElse((Option<Expr>) (Object) parseBinaryExpr(ast, symbolTable)).get();
@@ -208,10 +208,10 @@ public class FromUntypedAST {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public static Option<Atom> parseAtom(AST ast, HashMap<String, Var> symbolTable) {
         // Dafaq. Double casting = Just believe me stupid java compiler.
         // Inheritance -> Variance -> Fucked up type inference
-        // noinspection unchecked
         return ((Option<Atom>) (Object) parseConst(ast)).orElse((Option<Atom>) (Object) parseVarReference(ast, symbolTable));
     }
 

@@ -13,7 +13,7 @@ public abstract class Literal<A> extends Atom<A> implements ToPCodeString {
     public final A value;
     public abstract PCodeType type();
 
-    public List<PCommand> genPCode(SymbolTable symbolTable, LabelGenerator labelGenerator) {
+    public List<PCommand> evaluateExpr(SymbolTable symbolTable, LabelGenerator labelGenerator) {
         return List.<PCommand>single(new PCommand.LoadConstCommand(this));
     }
 

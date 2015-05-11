@@ -16,12 +16,12 @@ public abstract class UnaryExpr<A> extends Expr<A> {
     protected UnaryExpr(Expr<A> expr) {
         this.expr = expr;
     }
-    public List<PCommand> genPCode(SymbolTable symbolTable, LabelGenerator labelGenerator) {
+    public List<PCommand> evaluateExpr(SymbolTable symbolTable, LabelGenerator labelGenerator) {
         /**
          * <Push inner expr.>
          * Unary op.
          **/
-        List<PCommand> inner = expr.genPCode(symbolTable, labelGenerator);
+        List<PCommand> inner = expr.evaluateExpr(symbolTable, labelGenerator);
         List<PCommand> op = List.single(operation());
         // TODO: Change list to something with a faster append, O(n) here!
         return inner.append(op);
