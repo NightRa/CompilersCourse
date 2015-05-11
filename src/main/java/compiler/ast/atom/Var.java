@@ -50,8 +50,7 @@ public class Var<A> extends Atom<A> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Var<?> var = (Var<?>) o;
-        return name.equals(var.name) && type.equals(var.type);
-
+        return name.equals(var.name);
     }
     public int hashCode() {
         int result = name.hashCode();

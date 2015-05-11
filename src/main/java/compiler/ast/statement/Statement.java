@@ -53,7 +53,7 @@ public abstract class Statement implements PCodeGenable {
         }
 
         public String toString() {
-            return blockToString("if(" + condition + ")", thenBody);
+            return Strings.blockToString("if(" + condition + ")", thenBody);
         }
         public static List<PCommand> genIf(List<PCommand> condition, List<PCommand> then, Label afterIfLabel) {
             /**
@@ -88,8 +88,8 @@ public abstract class Statement implements PCodeGenable {
             this.elseBody = elseBody;
         }
         public String toString() {
-            return blockToString("if(" + condition.toString() + ")", thenBody) +
-                    blockToString("else", elseBody);
+            return Strings.blockToString("if(" + condition.toString() + ")", thenBody) +
+                    Strings.blockToString("else", elseBody);
         }
 
         public static List<PCommand> genIfElse(List<PCommand> condition, List<PCommand> thenBlock, List<PCommand> elseBlock, Label elseLabel, Label afterIfLabel) {
@@ -135,7 +135,7 @@ public abstract class Statement implements PCodeGenable {
         }
 
         public String toString() {
-            return blockToString("while(" + condition.toString() + ")", body);
+            return Strings.blockToString("while(" + condition.toString() + ")", body);
         }
         public static List<PCommand> genWhile(List<PCommand> condition, List<PCommand> body, Label whileLabel, Label afterWhileLabel) {
             /**
@@ -202,7 +202,7 @@ public abstract class Statement implements PCodeGenable {
             }
             @Override
             public String toString() {
-                return blockToString("case " + caseNum, body);
+                return Strings.blockToString("case " + caseNum, body);
             }
         }
 
@@ -258,19 +258,8 @@ public abstract class Statement implements PCodeGenable {
         }
         @Override
         public String toString() {
-            return blockToString("switch(" + expr.toString() + ")", cases);
+            return Strings.blockToString("switch(" + expr.toString() + ")", cases);
         }
     }
 
-    private static <A> String blockToString(String header, List<A> body) {
-        return header + " {\r\n" +
-                Strings.indent(2,
-                        Strings.mkString("", "\r\n", "",
-                                body.map(new Function<A, String>() {
-                                    public String apply(A line) {
-                                        return line.toString();
-                                    }
-                                })))
-                + "\r\n} ";
-    }
 }

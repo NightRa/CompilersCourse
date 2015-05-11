@@ -8,6 +8,7 @@ public class Strings {
         }
         return sb.toString();
     }
+
     public static String indent(int size, String text) {
         final String indentation = indentation(size);
         String[] linesArr = text.split("\r\n|\r|\n");
@@ -19,6 +20,7 @@ public class Strings {
                     }
                 });
     }
+
     public static String indentation(int size) {
         return multiply(size, " ");
     }
@@ -45,6 +47,7 @@ public class Strings {
         sb.append(close);
         return sb.toString();
     }
+
     public static <A> String mkString(String open, String separator, String close, List<A> lines) {
         return mkString(open, separator, close, lines, new Function<A, String>() {
             public String apply(A value) {
@@ -52,4 +55,21 @@ public class Strings {
             }
         });
     }
+
+    public static <A> String blockToString(String header, List<A> body) {
+        return indentBlock(header + "{", body) + "} ";
+    }
+
+    public static <A> String indentBlock(String header, List<A> body) {
+        return header + "\r\n" +
+                indent(2,
+                        mkString("", "\r\n", "",
+                                body.map(new Function<A, String>() {
+                                    public String apply(A line) {
+                                        return line.toString();
+                                    }
+                                })))
+                + "\r\n";
+    }
+
 }
