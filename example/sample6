@@ -1,5 +1,5 @@
 program p;
-var
+pointerVar
     a : real;
 begin
     a = 5.5;

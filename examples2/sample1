@@ -1,7 +1,7 @@
 program p;
 pointerVar
     a : real;
-    c : int;
+    c : ^int;
     b : bool;
 begin
     a = 5.0;
@@ -10,3 +10,4 @@ begin
         print 6
     }
 end
+

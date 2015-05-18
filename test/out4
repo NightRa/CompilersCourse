@@ -1,3 +1,38 @@
 LDC 5
-LDC 5
+LDC 1
 STO
+LDC 6
+LDC 1
+STO
+LDC 5
+IND
+NEG
+IXJ SwitchEnd0
+Case0-1: 
+LDC 0
+PRINT
+UJP SwitchEnd0
+Case0-2: 
+LDC 1
+PRINT
+UJP SwitchEnd0
+Case0-3: 
+LDC 2
+PRINT
+LDC 3
+PRINT
+UJP SwitchEnd0
+UJP Case0-3
+UJP Case0-2
+UJP Case0-1
+SwitchEnd0: 
+LDC 6
+IND
+NEG
+IXJ SwitchEnd1
+Case1-1: 
+LDC 4
+PRINT
+UJP SwitchEnd1
+UJP Case1-1
+SwitchEnd1: 

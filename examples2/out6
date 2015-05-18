@@ -1,0 +1,47 @@
+ldc 6
+inc 0
+ldc 6
+sto
+// b.c = 6
+ldc 9
+ldc 6
+inc 0
+ind
+sto
+// f = b.c
+ldc 9
+ind
+inc 1
+ldc 6
+sto
+// f^.d = 6
+ldc 9
+ind
+inc 1
+ind
+inc 2
+ldc 5
+sto
+// f^.d^.e = 5;
+ldc 5
+ldc 1
+chk 1 1
+ixa 1
+dec 1
+ldc 1000.500000
+sto
+// a[1] = 1000.5;
+ldc 9
+ind
+inc 1
+ind
+inc 2
+ind
+ldc 1
+chk 1 1
+ixa 1
+dec 1
+ind
+ldc 2.000000
+div
+print

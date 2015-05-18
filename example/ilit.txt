@@ -1,5 +1,5 @@
 program p;
-var
+pointerVar
    a : int;
    b : int;
    c : real;

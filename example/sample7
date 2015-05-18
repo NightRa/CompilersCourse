@@ -1,5 +1,5 @@
 program p;
-var
+pointerVar
     i : int;
 begin
     i = 1;

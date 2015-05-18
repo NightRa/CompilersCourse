@@ -1,20 +1,106 @@
 LDC 5
+LDC 5
+STO
+While1: 
+LDC 5
+IND
+LDC 0
+GRT
+FJP AfterWhile1
+LDC 6
 LDC 1
 STO
 While0: 
+LDC 6
+IND
 LDC 5
 IND
-LDC 10
 LES
 FJP AfterWhile0
-LDC 5
+LDC 6
 IND
 PRINT
-LDC 5
-LDC 5
+LDC 6
+LDC 6
 IND
 LDC 1
 ADD
 STO
 UJP While0
 AfterWhile0: 
+LDC 5
+LDC 5
+IND
+LDC 1
+SUB
+STO
+UJP While1
+AfterWhile1: 
+LDC false
+FJP AfterIf0
+LDC 15
+PRINT
+AfterIf0: 
+LDC true
+FJP Else1
+LDC 42
+PRINT
+UJP AfterIf1
+Else1: 
+LDC 16
+PRINT
+AfterIf1: 
+LDC 2
+NEG
+IXJ SwitchEnd0
+Case0-1: 
+LDC 0
+PRINT
+UJP SwitchEnd0
+Case0-2: 
+UJP SwitchEnd0
+Case0-3: 
+LDC 1
+PRINT
+LDC 2
+PRINT
+UJP SwitchEnd0
+UJP Case0-3
+UJP Case0-2
+UJP Case0-1
+SwitchEnd0: 
+LDC 5
+LDC 5
+LDC 6
+MUL
+LDC 0
+ADD
+STO
+LDC 5
+LDC 5
+IND
+NEG
+STO
+LDC 5
+IND
+PRINT
+LDC 7
+LDC true
+STO
+LDC 7
+LDC 7
+IND
+NOT
+STO
+LDC 7
+LDC 7
+IND
+LDC 5
+IND
+LDC 0
+LES
+OR
+STO
+LDC 7
+IND
+PRINT

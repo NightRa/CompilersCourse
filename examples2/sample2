@@ -1,16 +1,15 @@
 program p;
 pointerVar
    a : int;
-   b : int;
-   c : bool;
+   b : ^a;
 begin
-    a = -10;
-    b = -a;
-    c = not true;
+    a = 10;
+    b = 5;
     if false {
         a = a+6
     } else {
-        a = 10*a
+        b^ = 10*a
     };
     print a
 end
+

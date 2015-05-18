@@ -1,1 +1,15 @@
-
+LDC 5
+LDC 5.0
+STO
+LDC 7
+LDC 5
+IND
+LDC 6.0
+LES
+STO
+LDC 7
+IND
+FJP AfterIf0
+LDC 6
+PRINT
+AfterIf0: 
