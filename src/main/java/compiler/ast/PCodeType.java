@@ -6,6 +6,7 @@ import compiler.util.List;
 import compiler.util.Maps;
 import compiler.util.Strings;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public abstract class PCodeType {
@@ -57,6 +58,7 @@ public abstract class PCodeType {
 
     public static final class IdentifierType extends ReferenceType {
         public final String typeName;
+
         public IdentifierType(String typeName) {
             this.typeName = typeName;
         }
@@ -66,16 +68,14 @@ public abstract class PCodeType {
         }
         @Override
         public int size(Map<String, PCodeType> typeTable) {
-            if (!typeTable.containsKey(typeName)) {
-                throw new IllegalStateException("typeTable does not contain the type identifier '" + typeName + "'");
-            } else {
-                return typeTable.get(typeName).size(typeTable);
-            }
+            /*throw new IllegalStateException("Size should be called only after all the types have been resolved, and then size shouldn't ever be called on an identifier type." +
+                    "\r\ntype name: " + toString() + "\r\n");*/
+            return resolveIdentifier(typeTable, this).size(typeTable);
         }
     }
-    public static final class Pointer extends BaseType {
+    public static final class PointerType extends BaseType {
         public final ReferenceType ofType;
-        public Pointer(ReferenceType ofType) {
+        public PointerType(ReferenceType ofType) {
             this.ofType = ofType;
         }
         @Override
@@ -89,20 +89,35 @@ public abstract class PCodeType {
     }
 
     public static final class RecordType extends PCodeType {
+        public static final class Field {
+            public final Var var;
+            public final int offset;
+            public Field(Var var, int offset) {
+                this.var = var;
+                this.offset = offset;
+            }
+        }
         public final List<Var> fields;
 
         public RecordType(List<Var> fields) {
             this.fields = fields;
         }
 
-        public Map<String, Var> fieldsMap() {
+        // *** All types must already be resolved. ***
+        public Map<String, Field> fieldsMap(Map<String, PCodeType> typeTable) {
             // TODO: Cache?
-            return Maps.assocTable(fields, Var.varName);
+            Map<String, Field> fieldsMap = new HashMap<>();
+            int currentOffset = 0;
+            for (Var field : fields) {
+                fieldsMap.put(field.name, new Field(field, currentOffset));
+                currentOffset += field.type.size(typeTable);
+            }
+            return fieldsMap;
         }
 
         @Override
         public String toString() {
-            return Strings.indentBlock("record", fields) + "end;";
+            return "record\r\n" + Program.declarationsString(fields) + "\r\nend;";
         }
         @Override
         public int size(final Map<String, PCodeType> typeTable) {
@@ -128,14 +143,24 @@ public abstract class PCodeType {
             }
             public static Function<Bounds, Integer> size = new Function<Bounds, Integer>() {
                 public Integer apply(Bounds bounds) {
-                    // Inclusive on both sides.
-                    return bounds.endIndex - bounds.startIndex + 1;
+                    return bounds.size();
                 }
             };
+            public static Function<Bounds, Integer> start = new Function<Bounds, Integer>() {
+                public Integer apply(Bounds bounds) {
+                    return bounds.startIndex;
+                }
+            };
+            public int size() {
+                // Inclusive on both sides.
+                return endIndex - startIndex + 1;
+            }
         }
+
         public final List<Bounds> bounds;
-        public final ReferenceType ofType;
-        public ArrayType(List<Bounds> bounds, ReferenceType ofType) {
+        public final PCodeType ofType;
+
+        public ArrayType(List<Bounds> bounds, PCodeType ofType) {
             this.bounds = bounds;
             this.ofType = ofType;
         }
@@ -147,6 +172,15 @@ public abstract class PCodeType {
         public int size(Map<String, PCodeType> typeTable) {
             return List.mult(bounds.map(Bounds.size)) * ofType.size(typeTable);
         }
+    }
+
+    public static PCodeType resolveIdentifier(Map<String, PCodeType> typeTable, PCodeType type) {
+        PCodeType currentType = type;
+        while (currentType instanceof PCodeType.IdentifierType) {
+            String typeName = ((PCodeType.IdentifierType) currentType).typeName;
+            currentType = Maps.getOrError(typeTable, typeName, "The type named '" + typeName + "' wasn't found in the type table: " + typeTable);
+        }
+        return currentType;
     }
 
     public abstract String toString();

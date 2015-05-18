@@ -1,11 +1,13 @@
 package compiler.pcode;
 
+import compiler.ast.PCodeType;
 import compiler.ast.atom.Var;
 import compiler.errors.VariableNameUndefined;
 import compiler.util.List;
 import compiler.util.Option;
 
 import java.util.HashMap;
+import java.util.Map;
 
 public class SymbolTable {
     private final HashMap<String, AddressedVar> symbolTable;
@@ -23,12 +25,12 @@ public class SymbolTable {
         return Option.fromNull(symbolTable.getOrDefault(varName, null));
     }
 
-    public static SymbolTable assignAddresses(final List<Var> variables, final int startingAddress) {
+    public static SymbolTable assignAddresses(final List<Var> variables, final int startingAddress, Map<String, PCodeType> typeTable) {
         HashMap<String, AddressedVar> symbolTable = new HashMap<>();
         int currentAddress = startingAddress;
         for (Var var : variables) {
             symbolTable.put(var.name, assignAddress(var, currentAddress));
-            currentAddress += 1;
+            currentAddress += var.type.size(typeTable);
         }
         return symbolTable(symbolTable);
     }

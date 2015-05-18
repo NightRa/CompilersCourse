@@ -9,18 +9,31 @@ import compiler.pcode.PCommand;
 import compiler.pcode.SymbolTable;
 import compiler.util.*;
 
+import java.util.Map;
+
 public abstract class Statement {
-    public static Function<Statement, List<PCommand>> genCode(final SymbolTable symbolTable, final LabelGenerator labelGenerator) {
+    public static Function<Statement, List<PCommand>> genCode(final SymbolTable symbolTable, final Map<String, PCodeType> typeTable, final LabelGenerator labelGenerator) {
         return new Function<Statement, List<PCommand>>() {
             @Override
             public List<PCommand> apply(Statement statement) {
-                return statement.evaluateStatement(symbolTable, labelGenerator);
+                return statement.evaluateStatement(symbolTable, typeTable, labelGenerator);
+            }
+        };
+    }
+    public static Function<Statement, Statement> transformExprFunc(final Function<Expr, Expr> f, final Function<LHS, LHS> g) {
+        return new Function<Statement, Statement>() {
+            @Override
+            public Statement apply(Statement statement) {
+                return statement.transformExpr(f, g);
             }
         };
     }
 
+
     // Invariant: Stack before = Stack After
-    public abstract List<PCommand> evaluateStatement(SymbolTable symbolTable, final LabelGenerator labelGenerator);
+    public abstract List<PCommand> evaluateStatement(SymbolTable symbolTable, Map<String, PCodeType> typeTable, final LabelGenerator labelGenerator);
+    public abstract Statement transformExpr(Function<Expr, Expr> f, Function<LHS, LHS> g);
+
 
     public static final class Print extends Statement {
         public final Expr<?>/*existential*/ expr;
@@ -33,14 +46,18 @@ public abstract class Statement {
             return "print(" + expr.toString() + ")";
         }
 
-        public List<PCommand> evaluateStatement(SymbolTable symbolTable, LabelGenerator labelGenerator) {
+        public List<PCommand> evaluateStatement(SymbolTable symbolTable, Map<String, PCodeType> typeTable, LabelGenerator labelGenerator) {
             /**
              * <Push expr.>
              * Print command
              **/
-            List<PCommand> inner = expr.evaluateExpr(symbolTable, labelGenerator);
+            List<PCommand> inner = expr.evaluateExpr(symbolTable, typeTable);
             List<PCommand> print = List.<PCommand>single(new PCommand.PrintCommand());
             return inner.append(print);
+        }
+        @Override
+        public Statement transformExpr(Function<Expr, Expr> f, Function<LHS, LHS> g) {
+            return new Print(f.apply(expr));
         }
     }
     public static final class If extends Statement {
@@ -70,11 +87,19 @@ public abstract class Statement {
                     .append(labelCommand);
         }
 
-        public List<PCommand> evaluateStatement(final SymbolTable symbolTable, final LabelGenerator labelGenerator) {
-            List<PCommand> conditionBody = condition.evaluateExpr(symbolTable, labelGenerator);
-            List<PCommand> thenBody = this.thenBody.flatMap(genCode(symbolTable, labelGenerator));
+        @Override
+        public List<PCommand> evaluateStatement(final SymbolTable symbolTable, Map<String, PCodeType> typeTable, final LabelGenerator labelGenerator) {
+            List<PCommand> conditionBody = condition.evaluateExpr(symbolTable, typeTable);
+            List<PCommand> thenBody = this.thenBody.flatMap(genCode(symbolTable, typeTable, labelGenerator));
             Label afterIfLabel = labelGenerator.nextAfterIfLabel();
             return genIf(conditionBody, thenBody, afterIfLabel);
+        }
+        @SuppressWarnings("unchecked")
+        @Override
+        public Statement transformExpr(Function<Expr, Expr> f, Function<LHS, LHS> g) {
+            Expr<Boolean> transformedCondition = (Expr<Boolean>) f.apply(condition);
+            List<Statement> newThenBody = thenBody.map(transformExprFunc(f, g));
+            return new If(transformedCondition, newThenBody);
         }
     }
     public static final class IfElse extends Statement {
@@ -115,14 +140,22 @@ public abstract class Statement {
                     .append(afterIfLabelCommand);
         }
 
-        public List<PCommand> evaluateStatement(SymbolTable symbolTable, LabelGenerator labelGenerator) {
-            List<PCommand> conditionBody = condition.evaluateExpr(symbolTable, labelGenerator);
-            List<PCommand> thenBlock = thenBody.flatMap(genCode(symbolTable, labelGenerator));
-            List<PCommand> elseBlock = elseBody.flatMap(genCode(symbolTable, labelGenerator));
+        public List<PCommand> evaluateStatement(SymbolTable symbolTable, Map<String, PCodeType> typeTable, LabelGenerator labelGenerator) {
+            List<PCommand> conditionBody = condition.evaluateExpr(symbolTable, typeTable);
+            List<PCommand> thenBlock = thenBody.flatMap(genCode(symbolTable, typeTable, labelGenerator));
+            List<PCommand> elseBlock = elseBody.flatMap(genCode(symbolTable, typeTable, labelGenerator));
             Tuple2<Label, Label> labels = labelGenerator.nextIfElseLabels();
             Label afterIfLabel = labels.first;
             Label elseLabel = labels.second;
             return genIfElse(conditionBody, thenBlock, elseBlock, elseLabel, afterIfLabel);
+        }
+        @SuppressWarnings("unchecked")
+        @Override
+        public Statement transformExpr(Function<Expr, Expr> f, Function<LHS, LHS> g) {
+            Expr<Boolean> transformedCondition = (Expr<Boolean>) f.apply(condition);
+            List<Statement> newThenBody = thenBody.map(transformExprFunc(f, g));
+            List<Statement> newElseBody = elseBody.map(transformExprFunc(f, g));
+            return new IfElse(transformedCondition, newThenBody, newElseBody);
         }
     }
     public static final class While extends Statement {
@@ -157,13 +190,20 @@ public abstract class Statement {
                     .append(recheckWhileCondition)
                     .append(afterWhileLabelCommand);
         }
-        public List<PCommand> evaluateStatement(SymbolTable symbolTable, LabelGenerator labelGenerator) {
-            List<PCommand> conditionBody = condition.evaluateExpr(symbolTable, labelGenerator);
-            List<PCommand> bodyBlock = body.flatMap(genCode(symbolTable, labelGenerator));
+        public List<PCommand> evaluateStatement(SymbolTable symbolTable, Map<String, PCodeType> typeTable, LabelGenerator labelGenerator) {
+            List<PCommand> conditionBody = condition.evaluateExpr(symbolTable, typeTable);
+            List<PCommand> bodyBlock = body.flatMap(genCode(symbolTable, typeTable, labelGenerator));
             Tuple2<Label, Label> labels = labelGenerator.nextWhileAfterWhileLabels();
             Label whileLabel = labels.first;
             Label afterWhileLabel = labels.second;
             return genWhile(conditionBody, bodyBlock, whileLabel, afterWhileLabel);
+        }
+        @SuppressWarnings("unchecked")
+        @Override
+        public Statement transformExpr(Function<Expr, Expr> f, Function<LHS, LHS> g) {
+            Expr<Boolean> transformedCondition = (Expr<Boolean>) f.apply(condition);
+            List<Statement> newBody = body.map(transformExprFunc(f, g));
+            return new While(transformedCondition, newBody);
         }
     }
     public static final class Assignment<A> extends Statement {
@@ -179,18 +219,23 @@ public abstract class Statement {
             return lhs.toString() + " = " + value.toString();
         }
 
-        public List<PCommand> evaluateStatement(SymbolTable symbolTable, LabelGenerator labelGenerator) {
+        public List<PCommand> evaluateStatement(SymbolTable symbolTable, Map<String, PCodeType> typeTable, LabelGenerator labelGenerator) {
             /**
-             * Push var's address
+             * Push pointerVar's address
              * Push expr.'s value
              * Store
              **/
-            List<PCommand> loadLHSAddress = lhs.loadAddress(symbolTable, labelGenerator);
-            List<PCommand> exprValue = value.evaluateExpr(symbolTable, labelGenerator);
+            List<PCommand> loadLHSAddress = lhs.loadAddress(symbolTable, typeTable);
+            List<PCommand> exprValue = value.evaluateExpr(symbolTable, typeTable);
             PCommand store = new PCommand.StoreCommand();
             return loadLHSAddress
                     .append(exprValue)
                     .append(List.single(store));
+        }
+        @SuppressWarnings("unchecked")
+        @Override
+        public Statement transformExpr(Function<Expr, Expr> f, Function<LHS, LHS> g) {
+            return new Assignment<>(g.apply(lhs), f.apply(value));
         }
     }
     public static final class Switch extends Statement {
@@ -204,6 +249,14 @@ public abstract class Statement {
             @Override
             public String toString() {
                 return Strings.blockToString("case " + caseNum, body);
+            }
+            public static Function<Case, Case> transformExpr(final Function<Expr, Expr> f, final Function<LHS, LHS> g) {
+                return new Function<Case, Case>() {
+                    @Override
+                    public Case apply(Case _case) {
+                        return new Case(_case.caseNum, _case.body.map(transformExprFunc(f, g)));
+                    }
+                };
             }
         }
 
@@ -237,8 +290,8 @@ public abstract class Statement {
                     .append(switchEndCommand);
         }
         @Override
-        public List<PCommand> evaluateStatement(final SymbolTable symbolTable, final LabelGenerator labelGenerator) {
-            List<PCommand> exprBody = expr.evaluateExpr(symbolTable, labelGenerator);
+        public List<PCommand> evaluateStatement(final SymbolTable symbolTable, final Map<String, PCodeType> typeTable, final LabelGenerator labelGenerator) {
+            List<PCommand> exprBody = expr.evaluateExpr(symbolTable, typeTable);
             Tuple2<Label, List<Label>> labels = labelGenerator.nextSwitchEndAndSwitchCases(cases.length);
             Label switchEndLabel = labels.first;
             List<Label> casesLabels = labels.second;
@@ -249,7 +302,7 @@ public abstract class Statement {
                             List<Statement> caseBody = _case.body;
                             List<PCommand> casePCommandBody = caseBody.flatMap(new Function<Statement, List<PCommand>>() {
                                 public List<PCommand> apply(Statement statement) {
-                                    return statement.evaluateStatement(symbolTable, labelGenerator);
+                                    return statement.evaluateStatement(symbolTable, typeTable, labelGenerator);
                                 }
                             });
                             return Tuple2.pair(caseLabel, casePCommandBody);
@@ -260,6 +313,13 @@ public abstract class Statement {
         @Override
         public String toString() {
             return Strings.blockToString("switch(" + expr.toString() + ")", cases);
+        }
+        @SuppressWarnings("unchecked")
+        @Override
+        public Statement transformExpr(Function<Expr, Expr> f, Function<LHS, LHS> g) {
+            Expr<PCodeType.Int> transformedExpr = f.apply(expr);
+            List<Case> transformedCases = cases.map(Case.transformExpr(f, g));
+            return new Switch(transformedExpr, transformedCases);
         }
     }
 

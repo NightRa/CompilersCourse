@@ -1,5 +1,7 @@
 package compiler.util;
 
+import java.util.Iterator;
+
 public class Strings {
     public static String multiply(int times, String s) {
         StringBuilder sb = new StringBuilder(s.length() * times);
@@ -32,23 +34,21 @@ public class Strings {
         });
     }
 
-    public static <A> String mkString(String open, String separator, String close, List<A> lines, Function<A, String> toString) {
+    public static <A> String mkString(String open, String separator, String close, Iterable<A> lines, Function<A, String> toString) {
         StringBuilder sb = new StringBuilder();
         sb.append(open);
-        if (!lines.isEmpty()) {
-            sb.append(toString.apply(lines.head()));
-            lines = lines.tail();
-            while (!lines.isEmpty()) {
+        Iterator<A> iterator = lines.iterator();
+        if (iterator.hasNext()) {
+            sb.append(toString.apply(iterator.next()));
+            while (iterator.hasNext()) {
                 sb.append(separator);
-                sb.append(toString.apply(lines.head()));
-                lines = lines.tail();
+                sb.append(toString.apply(iterator.next()));
             }
         }
         sb.append(close);
         return sb.toString();
     }
-
-    public static <A> String mkString(String open, String separator, String close, List<A> lines) {
+    public static <A> String mkString(String open, String separator, String close, Iterable<A> lines) {
         return mkString(open, separator, close, lines, new Function<A, String>() {
             public String apply(A value) {
                 return value.toString();
@@ -56,15 +56,15 @@ public class Strings {
         });
     }
 
-    public static <A> String blockToString(String header, List<A> body) {
+    public static <A> String blockToString(String header, Iterable<A> body) {
         return indentBlock(header + "{", body) + "} ";
     }
 
-    public static <A> String indentBlock(String header, List<A> body) {
+    public static <A> String indentBlock(String header, Iterable<A> body) {
         return header + "\r\n" +
                 indent(2,
                         mkString("", "\r\n", "",
-                                body.map(new Function<A, String>() {
+                                IterableUtil.mapLazy(body, new Function<A, String>() {
                                     public String apply(A line) {
                                         return line.toString();
                                     }

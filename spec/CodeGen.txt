@@ -43,7 +43,7 @@ Code generation:
   Assignment: push the variable's address, push the expression's value, then store inside the variable's address, which is constant throughout the program, as all variables are defined once and for all.
   An intermediate pass, assigning an address for each variable.
   data AddressedVar
-    Push var's address
+    Push pointerVar's address
     Push expr.'s value
     Store
 ----
@@ -102,3 +102,13 @@ A list of cases, in each, a list of statements.
 3*. Label case_i: content, UJP switch_end
 4*. UJP case_n-i (in reverse order)
 5. Label switch_end.
+
+----
+load addr(var) = &var
+eval     (var) = *(&var) = *(load addr(var))
+
+load addr(var^) = eval(var)  = *(&var)
+eval     (var^) = *eval(var) = *(*(&var)) = *(load addr(var^))
+
+load addr(var.field) = addr(var) + fieldOffset
+eval     (var.field) = *(addr(var) + fieldOffset) = *(load addr(var.field))

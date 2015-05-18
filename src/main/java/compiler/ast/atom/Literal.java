@@ -1,80 +1,112 @@
 package compiler.ast.atom;
 
 import compiler.ast.PCodeType;
-import compiler.pcode.LabelGenerator;
+import compiler.ast.expr.Expr;
 import compiler.pcode.PCommand;
 import compiler.pcode.SymbolTable;
 import compiler.pcode.ToPCodeString;
+import compiler.util.Function;
 import compiler.util.List;
+
+import java.util.Map;
 
 /*TODO: Wrap in option, make a safe casts from String to Literal values*/
 public abstract class Literal<A> extends Atom<A> implements ToPCodeString {
-    public final String original;
     public final A value;
-    public abstract PCodeType type();
+    public abstract PCodeType rawType(Map<String, PCodeType> typeTable);
 
-    public List<PCommand> evaluateExpr(SymbolTable symbolTable, LabelGenerator labelGenerator) {
+    public List<PCommand> evaluateExpr(SymbolTable symbolTable, Map<String, PCodeType> typeTable) {
         return List.<PCommand>single(new PCommand.LoadConstCommand(this));
     }
 
-    protected Literal(String original, A value) {
-        this.original = original;
+    protected Literal(A value) {
         this.value = value;
     }
-    public static final class IntLiteral extends Literal<Integer> {
-        protected IntLiteral(String original, Integer value) {
-            super(original, value);
+    public static final class IntLiteral extends Literal<Number> {
+        protected IntLiteral(Integer value) {
+            super(value);
         }
 
-        public PCodeType type() {
+        public PCodeType rawType(Map<String, PCodeType> typeTable) {
             return PCodeType.Int;
+        }
+        @Override
+        public Number eval() {
+            return value;
         }
     }
     public static IntLiteral intLiteral(String intValue) {
-        return new IntLiteral(intValue, Integer.valueOf(intValue));
+        return new IntLiteral(Integer.valueOf(intValue));
     }
     public static IntLiteral intLiteral(int intValue) {
-        return new IntLiteral(String.valueOf(intValue), intValue);
+        return new IntLiteral(intValue);
     }
+    public static Function<Integer, Expr<Number>> intLiteral = new Function<Integer, Expr<Number>>() {
+        @Override
+        public Expr<Number> apply(Integer value) {
+            return intLiteral(value);
+        }
+    };
+
     public static final class RealLiteral extends Literal<Double> {
-        protected RealLiteral(String original, Double value) {
-            super(original, value);
+        protected RealLiteral(Double value) {
+            super(value);
         }
 
-        public PCodeType type() {
+        public PCodeType rawType(Map<String, PCodeType> typeTable) {
             return PCodeType.Real;
+        }
+        @Override
+        public Double eval() {
+            return value;
         }
     }
     public static RealLiteral realLiteral(String realValue) {
-        return new RealLiteral(realValue, Double.valueOf(realValue));
+        return new RealLiteral(Double.valueOf(realValue));
     }
     public static final class BooleanLiteral extends Literal<Boolean> {
-        protected BooleanLiteral(String original, Boolean value) {
-            super(original, value);
+        protected BooleanLiteral(Boolean value) {
+            super(value);
         }
 
-        public PCodeType type() {
+        public PCodeType rawType(Map<String, PCodeType> typeTable) {
             return PCodeType.Bool;
+        }
+        @Override
+        public Boolean eval() {
+            return value;
         }
     }
     public static BooleanLiteral booleanLiteral(String boolValue) {
         if (boolValue.equals("True")) {
-            return new BooleanLiteral(boolValue, true);
+            return new BooleanLiteral(true);
         } else if (boolValue.equals("False")) {
-            return new BooleanLiteral(boolValue, false);
+            return new BooleanLiteral(false);
         } else {
             throw new IllegalArgumentException("booleanLiteral(" + boolValue + ") isn't of the required format.");
         }
     }
 
-    public int precedence() {
-        return 0;
-    }
     public String toString() {
         return value.toString().toLowerCase();
     }
 
     public String toPCodeString() {
-        return original;
+        return String.valueOf(value);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Literal)) return false;
+
+        Literal<?> literal = (Literal<?>) o;
+
+        return value.equals(literal.value);
+
+    }
+    @Override
+    public int hashCode() {
+        return value.hashCode();
     }
 }

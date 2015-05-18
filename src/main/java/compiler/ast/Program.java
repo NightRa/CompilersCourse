@@ -10,6 +10,8 @@ import compiler.util.Function;
 import compiler.util.List;
 import compiler.util.Strings;
 
+import java.util.Map;
+
 public class Program {
     public final String programName;
     public final List<Var> declarations;
@@ -24,17 +26,10 @@ public class Program {
 
     public String toString() {
         String header = "Program " + programName + ": \r\n";
-        String declarations =
+        String declarationsString =
                 "Variables: \r\n" +
                         (this.declarations.isEmpty() ? "  No variables." :
-                                (Strings.indent(2, Strings.mkString(
-                                        "", "\r\n", "",
-                                        this.declarations,
-                                        new Function<Var, String>() {
-                                            public String apply(Var var) {
-                                                return var.declarationString();
-                                            }
-                                        }))))
+                                declarationsString(declarations))
                         + "\r\n";
         String program =
                 "Program: \r\n" +
@@ -45,16 +40,28 @@ public class Program {
                                                 statements
                                         )))
                         + "\r\n";
-        return header + declarations + program;
+        return header + declarationsString + program;
     }
 
-    public List<PCommand> genPCode(SymbolTable symbolTable, LabelGenerator labelGenerator) {
-        return statements.flatMap(Statement.genCode(symbolTable, labelGenerator));
+    public static String declarationsString(List<Var> declarations) {
+        return Strings.indent(2, Strings.mkString(
+                "", "\r\n", "",
+                declarations,
+                new Function<Var, String>() {
+                    public String apply(Var var) {
+                        return var.declarationString();
+                    }
+                }));
+    }
+
+    public List<PCommand> genPCode(SymbolTable symbolTable, Map<String, PCodeType> typeTable, LabelGenerator labelGenerator) {
+        return statements.flatMap(Statement.genCode(symbolTable, typeTable, labelGenerator));
     }
     public List<PCommand> genPCode(int startingAddress){
-        SymbolTable symbolTable = SymbolTable.assignAddresses(declarations, startingAddress);
+        Map<String, PCodeType> typeTable = TypeResolution.makeTypeTable(declarations);
+        SymbolTable symbolTable = SymbolTable.assignAddresses(declarations, startingAddress, typeTable);
         LabelGenerator labelGenerator = new CounterLabelGenerator();
-        return genPCode(symbolTable, labelGenerator);
+        return genPCode(symbolTable, typeTable, labelGenerator);
     }
 
     public List<PCommand> genPCode(){

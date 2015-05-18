@@ -1,13 +1,14 @@
 package compiler.ast.atom;
 
 import compiler.ast.PCodeType;
-import compiler.pcode.LabelGenerator;
 import compiler.pcode.PCommand;
 import compiler.pcode.SymbolTable;
 import compiler.util.Function;
 import compiler.util.List;
 
-public class Var<A> extends Atom<A> implements LHS<A> {
+import java.util.Map;
+
+public class Var<A> extends LHS<A> {
     public final String name;
     public final PCodeType type;
 
@@ -16,12 +17,8 @@ public class Var<A> extends Atom<A> implements LHS<A> {
         this.type = type;
     }
 
-    public PCodeType type() {
+    public PCodeType rawType(Map<String, PCodeType> typeTable) {
         return type;
-    }
-
-    public int precedence() {
-        return 0;
     }
 
     public String toString() {
@@ -31,24 +28,13 @@ public class Var<A> extends Atom<A> implements LHS<A> {
         return name + ": " + type.toString();
     }
 
-    /**
-     * Var is an expression, generate the code which puts the value of the var into the stack.
-     */
-    public List<PCommand> evaluateExpr(SymbolTable symbolTable, LabelGenerator labelGenerator) {
-        /**
-         * LDC Address
-         * IND
-         **/
-        // TODO: Proper error handling, don't throw an exception.
-        int address = symbolTable.unsafeGetAddress(name);
-        PCommand.LoadConstCommand loadAddress = new PCommand.LoadConstCommand(Literal.intLiteral(address));
-        PCommand.LoadIndirectCommand loadIndirect = new PCommand.LoadIndirectCommand();
-        return List.list(loadAddress, loadIndirect);
-
+    public Var<A> setType(PCodeType newType) {
+        return new Var<>(this.name, newType);
     }
 
     @Override
-    public List<PCommand> loadAddress(SymbolTable symbolTable, LabelGenerator labelGenerator) {
+    public List<PCommand> loadAddress(SymbolTable symbolTable, Map<String, PCodeType> typeTable) {
+        // TODO: Proper error handling, don't throw an exception.
         int address = symbolTable.unsafeGetAddress(this.name);
         PCommand loadAddress = new PCommand.LoadConstCommand(Literal.intLiteral(address));
         return List.single(loadAddress);
@@ -59,6 +45,17 @@ public class Var<A> extends Atom<A> implements LHS<A> {
             return var.name;
         }
     };
+    public static final Function<Var, PCodeType> varType = new Function<Var, PCodeType>() {
+        @Override
+        public PCodeType apply(Var var) {
+            return var.type;
+        }
+    };
+
+    @Override
+    public A eval() {
+        throw new UnsupportedOperationException("Eval of Var isn't supported.");
+    }
 
     public boolean equals(Object o) {
         if (this == o) return true;

@@ -28,12 +28,21 @@ final public class AST {
         return new AST(label, null, null);
     }
 
-    public static AST ast(String label, AST left, AST right){
+    public static AST ast(String label, AST left, AST right) {
         return new AST(label, left, right);
     }
 
+    @SuppressWarnings("ConstantConditions")
     public String toString() {
-        return label;
+        if (left != null && right != null) {
+            return label + "(" + left.toString() + "," + right.toString() + ")";
+        } else if (left != null && right == null) {
+            return label + "(" + left.toString() + ")";
+        } else if (left == null && right != null) {
+            return label + "(" + right.toString() + ")";
+        } else {
+            return label;
+        }
     }
 
     public boolean equals(Object o) {
