@@ -57,18 +57,18 @@ public class Program {
     public List<PCommand> genPCode(SymbolTable symbolTable, Map<String, PCodeType> typeTable, LabelGenerator labelGenerator) {
         return statements.flatMap(Statement.genCode(symbolTable, typeTable, labelGenerator));
     }
-    public List<PCommand> genPCode(int startingAddress){
+    public List<PCommand> genPCode(int startingAddress) {
         Map<String, PCodeType> typeTable = TypeResolution.makeTypeTable(declarations);
         SymbolTable symbolTable = SymbolTable.assignAddresses(declarations, startingAddress, typeTable);
         LabelGenerator labelGenerator = new CounterLabelGenerator();
         return genPCode(symbolTable, typeTable, labelGenerator);
     }
 
-    public List<PCommand> genPCode(){
+    public List<PCommand> genPCode() {
         return genPCode(startingAddress);
     }
 
-    public static String generateProgramString(List<PCommand> commands){
+    public static String generateProgramString(List<PCommand> commands) {
         return Strings.mkString("", "\r\n", "", commands, new Function<PCommand, String>() {
             @Override
             public String apply(PCommand command) {

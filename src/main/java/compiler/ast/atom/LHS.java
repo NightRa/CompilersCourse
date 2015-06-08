@@ -10,6 +10,7 @@ import java.util.Map;
 public abstract class LHS<A> extends Atom<A> {
     public abstract List<PCommand> loadAddress(SymbolTable symbolTable, Map<String, PCodeType> typeTable);
 
+    @Override
     public final List<PCommand> evaluateExpr(SymbolTable symbolTable, Map<String, PCodeType> typeTable) {
         /**
          * Load address.

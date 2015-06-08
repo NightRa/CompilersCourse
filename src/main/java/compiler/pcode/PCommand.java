@@ -113,6 +113,26 @@ public abstract class PCommand implements ToPCodeString {
             return "LDC " + value.toPCodeString();
         }
     }
+    public static final class LoadNestedValueCommand extends PCommand {
+        public final int parentDepth;
+        public final int offset;
+        public LoadNestedValueCommand(int parentDepth, int offset) {
+            this.parentDepth = parentDepth;
+            this.offset = offset;
+        }
+        @Override
+        public String toPCodeString() {
+            return "LOD " + parentDepth + " " + offset;
+        }
+    }
+    public static final class LoadNestedAddressCommand extends PCommand {
+        public static int parentDepth;
+        public static int offset;
+        @Override
+        public String toPCodeString() {
+            return "LDA " + parentDepth + " " + offset;
+        }
+    }
     public static final class FalseJumpCommand extends PCommand {
         public final Label jumpAddress;
         public FalseJumpCommand(Label jumpAddress) {
@@ -154,6 +174,78 @@ public abstract class PCommand implements ToPCodeString {
         }
         public String toPCodeString() {
             return label.label + ": ";
+        }
+    }
+    public static final class PrepareFunctionCallCommand extends PCommand {
+        public final int callerDistanceFromLCA;
+        // The LCA is the parent of the callee.
+        public PrepareFunctionCallCommand(int callerDistanceFromLCA) {
+            this.callerDistanceFromLCA = callerDistanceFromLCA;
+        }
+        @Override
+        public String toPCodeString() {
+            return "MST " + callerDistanceFromLCA;
+        }
+        // Note: logic.
+        public static PrepareFunctionCallCommand prepareFunctionCall(int callDepth, int calleeDepth) {
+            return new PrepareFunctionCallCommand(callDepth - calleeDepth);
+        }
+    }
+    public static final class ProcedureReturnCommand extends PCommand {
+        @Override
+        public String toPCodeString() {
+            return "RETP";
+        }
+    }
+    public static final class FunctionReturnCommand extends PCommand {
+        @Override
+        public String toPCodeString() {
+            return "RETF";
+        }
+    }
+    public static final class AllocateStackCommand extends PCommand {
+        public final int frameSize;
+        public AllocateStackCommand(int frameSize) {
+            this.frameSize = frameSize;
+        }
+
+        @Override
+        public String toPCodeString() {
+            return "SSP " + frameSize;
+        }
+        // Note: logic.
+        public static AllocateStackCommand allocateFunctionFrame(int paramSize, int localVarsSize) {
+            // 5 is the function frame bookkeeping size.
+            return new AllocateStackCommand(5 + paramSize + localVarsSize);
+        }
+    }
+    public static final class CopyMemoryCommand extends PCommand {
+        // The address from which we copy is on top of the stack.
+        public final int amount;
+        public CopyMemoryCommand(int amount) {
+            this.amount = amount;
+        }
+        @Override
+        public String toPCodeString() {
+            return "MOVS " + amount;
+        }
+    }
+    public static final class CallCommand extends PCommand {
+        public final int paramsSize;
+        public final Label label;
+        public CallCommand(int paramsSize, Label label) {
+            this.paramsSize = paramsSize;
+            this.label = label;
+        }
+        @Override
+        public String toPCodeString() {
+            return "CUP " + paramsSize + " " + label;
+        }
+    }
+    public static final class STOPCommand extends PCommand {
+        @Override
+        public String toPCodeString() {
+            return "STP";
         }
     }
 }
