@@ -1,0 +1,205 @@
+h_0: ssp 6
+ujp h_0_begin
+g_1: ssp 7
+ujp g_1_begin
+f_2: ssp 7
+ujp f_2_begin
+p_3: ssp 7
+ujp p_3_begin
+p_3_begin: lda 0 6
+ldc 2
+sto
+while_0:
+lda 0 6
+ind
+lda 0 6
+ind
+mul
+lda 0 5
+ind
+leq
+lda 0 5
+ind
+lda 0 5
+ind
+lda 0 6
+ind
+div
+lda 0 6
+ind
+mul
+neq
+and
+fjp while_out_0
+lda 0 6
+lda 0 6
+ind
+ldc 1
+add
+sto
+ujp while_0
+while_out_0:
+lda 0 0
+lda 0 6
+ind
+lda 0 6
+ind
+mul
+lda 0 5
+ind
+grt
+lda 0 5
+ind
+ldc 4
+neq
+and
+lda 0 5
+ind
+ldc 1
+neq
+and
+sto
+retf
+f_2_begin: lda 0 6
+ldc 2
+sto
+lda 0 0
+lda 0 5
+ind
+sto
+while_1:
+lda 0 6
+ind
+lda 0 5
+ind
+ldc 2
+div
+leq
+fjp while_out_1
+mst 0
+lda 0 6
+ind
+cup 1 p_3
+lda 0 5
+ind
+lda 0 5
+ind
+lda 0 6
+ind
+div
+lda 0 6
+ind
+mul
+equ
+and
+fjp if_out_0
+lda 0 0
+lda 0 0
+ind
+ldc 1
+ldc 1.000000
+lda 0 6
+ind
+div
+sub
+mul
+sto
+if_out_0:
+lda 0 6
+lda 0 6
+ind
+ldc 1
+add
+sto
+ujp while_1
+while_out_1:
+mst 0
+lda 0 5
+ind
+cup 1 p_3
+fjp if_out_1
+lda 0 0
+lda 0 0
+ind
+ldc 1
+ldc 1.000000
+lda 0 5
+ind
+div
+sub
+mul
+sto
+if_out_1:
+retf
+g_1_begin: lda 0 0
+mst 0
+lda 0 5
+ind
+cup 1 f_2
+sto
+lda 0 6
+ldc 1
+sto
+while_2:
+lda 0 6
+ind
+lda 0 5
+ind
+ldc 2
+div
+leq
+fjp while_out_2
+lda 0 5
+ind
+lda 0 5
+ind
+lda 0 6
+ind
+div
+lda 0 6
+ind
+mul
+equ
+fjp if_out_2
+lda 0 0
+lda 0 0
+ind
+mst 0
+lda 0 6
+ind
+cup 1 f_2
+add
+sto
+if_out_2:
+lda 0 6
+lda 0 6
+ind
+ldc 1
+add
+sto
+ujp while_2
+while_out_2:
+retf
+h_0_begin: lda 0 5
+ldc 1
+sto
+while_3:
+lda 0 5
+ind
+ldc 13
+leq
+fjp while_out_3
+mst 0
+lda 0 5
+ind
+cup 1 g_1
+print
+lda 0 5
+lda 0 5
+ind
+ldc 1
+add
+sto
+ujp while_3
+while_out_3:
+stp

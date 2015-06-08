@@ -1,0 +1,37 @@
+p_0: ssp 5            ;
+ujp p_0_begin         ;
+f_1: ssp 6            ; 1 additional var
+ujp f_1_begin         ;
+f_1_begin: lda 0 5    ; load addr. of n
+ind                   ; load n
+ldc 2                 ; 2
+les                   ; n < 2
+fjp else_0            ; continue if n < 2, otherwise, jump to else.
+lda 0 0               ; return value - depth 0, relative return addr = 0
+lda 0 5               ; load addr of n
+ind                   ; load n
+sto                   ; return value = n
+ujp if_out_0          ; jump out of the if.
+else_0:               ; else:
+lda 0 0               ; load ret. addr.
+mst 1                 ; prepare function call - why 1?!
+lda 0 5               ; load addr. of n
+ind                   ; load n
+ldc 1                 ; load 1
+sub                   ; n - 1
+cup 1 f_1             ; call func. param size = 1
+mst 1                 ; prepare func call
+lda 0 5               ;
+ind                   ;
+ldc 2                 ;
+sub                   ; n - 2
+cup 1 f_1             ; function call, param size = 1
+add                   ; add the 2 last results
+sto                   ; store in the return addr.
+if_out_0:
+retf                  ; after the if, return.
+p_0_begin: mst 0      ; prepare function call, current depth = 0
+ldc 7                 ; load 7 - the function parameter
+cup 1 f_1             ; function call
+print                 ; print result
+stp                   ; stop

@@ -1,0 +1,32 @@
+p_0: ssp 11
+ujp p_0_begin
+f_1: ssp 11
+ujp f_1_begin
+f_1_begin: lda 0 5
+ldc 5
+chk 0 5
+ixa 1
+dec 0
+ind
+print
+retp
+g_2: ssp 7
+ujp g_2_begin
+g_2_begin: mstf 0 5
+lda 1 5
+movs 6
+smp 6
+cupi  0 5
+retp
+p_0_begin: lda 0 5
+ldc 6
+chk 1 6
+ixa 1
+dec 1
+ldc 15
+sto
+mst 0
+ldc f_1
+lda 0 0
+cup 2 g_2
+stp

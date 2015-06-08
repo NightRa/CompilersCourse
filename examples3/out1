@@ -1,0 +1,18 @@
+p_0: ssp 8
+ujp p_0_begin
+p_0_begin: lda 0 5
+ldc 5.000000
+sto
+lda 0 7
+lda 0 5
+ind
+ldc 6.000000
+les
+sto
+lda 0 7
+ind
+fjp if_out_0
+ldc 6
+print
+if_out_0:
+stp

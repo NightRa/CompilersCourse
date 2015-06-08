@@ -1,0 +1,24 @@
+p_0: ssp 11        ; main. ssp = add to stack pointer, allocate 6 vars.
+ujp p_0_begin      ; jump to main procedure
+f_1: ssp 11        ; f procedure - allocate 11 spots = 5 frame + *6* for vars.
+ujp f_1_begin      ; jump to f1 begin
+f_1_begin: lda 0 5 ; relative depth = 0, relative addr. = 5 - load b.
+ldc 5              ; array index
+chk 0 5            ; check in bounds
+ixa 1              ; idnex
+dec 0              ; subpart
+ind                ; load
+print              ; print
+retp               ; return from procedure
+p_0_begin: lda 0 5 ; load address with depth - 0 from starting addr. 5
+ldc 6              ; index in array
+chk 1 6            ; check if in bounds. array [1..6]
+ixa 1              ; mult add
+dec 1              ; subpart
+ldc 12             ; load 12
+sto                ; store 12 in array[6]
+mst 0              ; push function frame, current depth = 0
+lda 0 5            ; load the address of a - function depth 0 starting at addr. 5
+movs 6             ; copy array of size 6 - copy a to the top of the stack.
+cup 6 f_1          ; function call - param size, function label: return address and frame pointer
+stp                ; stop
