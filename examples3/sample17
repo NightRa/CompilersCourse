@@ -1,21 +1,23 @@
 program p;
     var
-        a : int;
+        a : array [0..5] of int;
+        x : int;
 
     proc f(var b : array [0..5] of int, x : int)
     begin
         print b[5]
     end
 
-    func g(a : f) : int
+    func g(a : f, y : int) : int
     var
         a : array [0..5] of int;
         x : int;
     begin
         f(a, x);
-        g(a)
+        g(a, y)
     end
 begin
-    g(f)
+    print g(f, g(f, 1)) + 5;
+    f(a, x)
 end
 
