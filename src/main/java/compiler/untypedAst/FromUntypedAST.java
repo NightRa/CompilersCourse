@@ -4,6 +4,7 @@ import compiler.ast.Type;
 import compiler.ast.atom.*;
 import compiler.ast.expr.BinaryExpr;
 import compiler.ast.expr.Expr;
+import compiler.ast.expr.FunctionCallExpr;
 import compiler.ast.expr.UnaryExpr;
 import compiler.ast.scopes.*;
 import compiler.ast.statement.*;
@@ -168,6 +169,38 @@ public class FromUntypedAST {
         return new Declaration(identifier, type);
     }
 
+    public static Option<Tuple2<String, List<Expr<?>>>> parseCall(AST ast) {
+        if (ast.label.equals("Call")) {
+            String name = parseIdentifier(ast.left).getOrError("Function call name isn't an identifier. " + ast.left).name;
+            List<AST> argumentList = parseASTList(ast.right, "ArgumentList");
+            List<Expr<?>> arguments = argumentList.map(new Function<AST, Expr<?>>() {
+                @Override
+                public Expr<?> apply(AST argument) {
+                    return parseExpression(argument);
+                }
+            });
+            return some(Tuple2.pair(name, arguments));
+        } else {
+            return none();
+        }
+
+    }
+
+    public static ProcedureCall parseProcedureCall(AST ast) {
+        Tuple2<String, List<Expr<?>>> call = parseCall(ast).get();
+        return new ProcedureCall(call.first, call.second);
+    }
+
+    public static Option<FunctionCallExpr<?>> parseFunctionCallExpr(AST ast) {
+        Option<Tuple2<String, List<Expr<?>>>> callOpt = parseCall(ast);
+        return callOpt.map(new Function<Tuple2<String, List<Expr<?>>>, FunctionCallExpr<?>>() {
+            @Override
+            public FunctionCallExpr<?> apply(Tuple2<String, List<Expr<?>>> call) {
+                return new FunctionCallExpr<>(call.first, call.second);
+            }
+        });
+    }
+
     @SuppressWarnings("unchecked")
     public static Statement parseStatement(AST statementAST) {
         switch (statementAST.label) {
@@ -201,6 +234,8 @@ public class FromUntypedAST {
                         parseExpression(statementAST.left),
                         parseSwitchCases(statementAST.right)
                 );
+            case "Call":
+                return parseProcedureCall(statementAST);
             default:
                 throw new StatementUnsupportedException(statementAST.label);
         }
@@ -282,6 +317,7 @@ public class FromUntypedAST {
         return ((Option<Expr>) (Object) parseAtom(ast))
                 .orElse((Option<Expr>) (Object) parseUnary(ast))
                 .orElse((Option<Expr>) (Object) parseBinaryExpr(ast))
+                .orElse((Option<Expr>) (Object) parseFunctionCallExpr(ast))
                 .getOrError("Unsupported Expression: " + ast);
     }
 
