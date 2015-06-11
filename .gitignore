@@ -1,9 +1,9 @@
 *.iml
 .idea/
 out/
-*.class
 *.jar
 spec/parser.y
 Lectures/
 old/
 submission/
+test/

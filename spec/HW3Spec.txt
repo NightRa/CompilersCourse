@@ -45,6 +45,13 @@ x - a = b
 
 The Function return value is just a regular local variable, that is returned at the end of the runtime of the function.
 
+Scope:
+  name - String
+  InOutParameters - AST
+  StatementList - List[Statement]
+  Declarations - List[Declaration]
+  Scope - Parse recursively on parseFunctions.
+
 ---
 
 func f(x: int) : int

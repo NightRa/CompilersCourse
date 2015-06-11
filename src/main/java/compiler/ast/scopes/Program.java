@@ -16,13 +16,15 @@ import java.util.Map;
 public class Program {
     public final String programName;
     public final List<Declaration> declarations;
+    public final List<FunctionsAndProcedures> functions;
     public final List<Statement> statements;
     public static final int startingAddress = 5;
 
-    public Program(String programName, List<Declaration> declarations, List<Statement> statements) {
+    public Program(String programName, List<Declaration> declarations, List<FunctionsAndProcedures> functions, List<Statement> statements) {
         this.programName = programName;
         this.declarations = declarations;
         this.statements = statements;
+        this.functions = functions;
     }
 
     public String toString() {

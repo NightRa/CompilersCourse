@@ -1,11 +1,11 @@
 package compiler.untypedAst;
 
+import compiler.ast.Type;
 import compiler.ast.atom.*;
 import compiler.ast.expr.BinaryExpr;
 import compiler.ast.expr.Expr;
 import compiler.ast.expr.UnaryExpr;
-import compiler.ast.scopes.Declaration;
-import compiler.ast.scopes.Program;
+import compiler.ast.scopes.*;
 import compiler.ast.statement.Statement;
 import compiler.errors.StatementUnsupportedException;
 import compiler.util.Function;
@@ -17,33 +17,61 @@ import static compiler.ast.Type.*;
 import static compiler.util.Option.*;
 
 /* Safety TODO: Unsafe fromUntypedAST - throws exceptions all over the place :)*/
+/* TODO: Parse function/procedure calls. */
 public class FromUntypedAST {
     // Program => PCode
     // main = parse: AST => Option[Program] o codeGen: Program => PCode
     // main: AST => Option[PCode]
     public static Program fromUntyped(AST ast) {
-        assert ast.label.equals("Program");
+        ParseScopeResult programData = parseScope(ast, "Program");
+        return new Program(programData.name, programData.declarations, programData.functionsAndProcedures, programData.statementList);
+    }
+
+    public static final class ParseScopeResult {
+        public final String name;
+        public final AST inOutParameters;
+        public final List<Statement> statementList;
+        public final List<Declaration> declarations;
+        public final List<FunctionsAndProcedures> functionsAndProcedures;
+        public ParseScopeResult(String name, AST inOutParameters, List<Statement> statementList, List<Declaration> declarations, List<FunctionsAndProcedures> functionsAndProcedures) {
+            this.name = name;
+            this.inOutParameters = inOutParameters;
+            this.statementList = statementList;
+            this.declarations = declarations;
+            this.functionsAndProcedures = functionsAndProcedures;
+        }
+    }
+
+    public static ParseScopeResult parseScope(AST ast, String header) {
+        assert ast.label.equals(header);
         AST identAndParams = ast.left;
-        assert identAndParams.right.label.equals("InOutParameters");
         assert identAndParams.label.equals("IdentifierAndParameters");
+        // ---------------------------------------------
+        assert identAndParams.right.label.equals("InOutParameters");
+        AST inOutParameters = identAndParams.right;
+        // ---------------------------------------------
         AST identifier = identAndParams.left;
         // ---------------------------------------------
         assert identifier.label.equals("Identifier");
-        String programName = parseIdentifier(identifier).get().name;
+        String name = parseIdentifier(identifier).get().name;
         // ---------------------------------------------
         AST content = ast.right;
         assert content.label.equals("Content");
         // ---------------------------------------------
         List<Declaration> declarations;
+        List<FunctionsAndProcedures> functions;
         List<Statement> statements;
         // ---------------------------------------------
         AST scope = content.left;
         if (scope == null) {
             declarations = List.nil();
+            functions = List.nil();
         } else {
             assert scope.label.equals("Scope");
             // ---------------------------------------------
             declarations = parseDeclarationList(scope.left);
+            // Note: Recursion here!
+            functions = parseFunctions(scope.right);
         }
         // ---------------------------------------------
         if (content.right == null) {
@@ -52,9 +80,66 @@ public class FromUntypedAST {
             statements = parseStatements(content.right);
         }
         // ---------------------------------------------
-        return new Program(programName, declarations, statements);
+        return new ParseScopeResult(name, inOutParameters, statements, declarations, functions);
     }
 
+    public static List<FunctionsAndProcedures> parseFunctions(AST funcsAndProcedures) {
+        List<AST> functionsList = parseASTList(funcsAndProcedures, "FunctionsList");
+        return functionsList.map(new Function<AST, FunctionsAndProcedures>() {
+            @Override
+            public FunctionsAndProcedures apply(AST ast) {
+                return parseDefinableScope(ast);
+            }
+        });
+    }
+    public static FunctionsAndProcedures parseDefinableScope(AST ast) {
+        if (ast.label.equals("Procedure")) {
+            return parseProcedure(ast);
+        } else if (ast.label.equals("Function")) {
+            return parseFunction(ast);
+        } else {
+            throw new IllegalArgumentException("Function/Procedure with label " + ast.label);
+        }
+    }
+
+    public static List<FunctionParameter> parseInputParameters(AST ast) {
+        List<AST> parametersList = parseASTList(ast, "ParametersList");
+        return parametersList.map(new Function<AST, FunctionParameter>() {
+            @Override
+            public FunctionParameter apply(AST parameter) {
+                return parseParameter(parameter);
+            }
+        });
+    }
+    public static FunctionParameter parseParameter(AST parameter) {
+        if (parameter.label.equals("ByValue")) {
+            String name = parseIdentifier(parameter.left).getOrError("Parameter name unavailable.").name;
+            PType pType = parsePType(parameter.right);
+            return new FunctionParameter(name, pType);
+        } else if (parameter.label.equals("ByReference")) {
+            String name = parseIdentifier(parameter.left).getOrError("Parameter name unavailable.").name;
+            PType pType = parsePType(parameter.right);
+            Type referenceType = new ReferenceType(pType);
+            return new FunctionParameter(name, referenceType);
+        } else {
+            throw new IllegalArgumentException("Invalid parameter kind: " + parameter.label);
+        }
+    }
+
+    public static FunctionDef parseFunction(AST ast) {
+        ParseScopeResult functionData = parseScope(ast, "Function");
+        List<FunctionParameter> inputs = parseInputParameters(functionData.inOutParameters.left);
+        PrimitiveType output = parsePrimitiveType(functionData.inOutParameters.right).getOrError("No output for the function with name " + functionData.name);
+        return new FunctionDef(functionData.name, functionData.declarations, functionData.functionsAndProcedures, inputs, output, functionData.statementList);
+    }
+
+    public static ProcedureDef parseProcedure(AST ast) {
+        ParseScopeResult procedureData = parseScope(ast, "Procedure");
+        List<FunctionParameter> inputs = parseInputParameters(procedureData.inOutParameters.left);
+        return new ProcedureDef(procedureData.name, procedureData.declarations, procedureData.functionsAndProcedures, inputs, procedureData.statementList);
+    }
+
+    // NOTE: null is allowed in the AST parameter here.
     public static List<Declaration> parseDeclarationList(AST declarationList) {
         List<AST> declarationASTs = parseASTList(declarationList, "DeclarationsList");
         return declarationASTs.map(new Function<AST, Declaration>() {
@@ -368,6 +453,8 @@ public class FromUntypedAST {
                 .getOrError("Unsupported type: " + type.label + ", tree: " + type.toString());
     }
 
+
+    // NOTE: This function is allowed to get null in the AST parameter.
     public static List<AST> parseASTList(AST astList, String nodeName) {
         List<AST> acc = List.nil();
         while (astList != null) {

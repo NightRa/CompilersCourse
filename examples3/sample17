@@ -1,0 +1,21 @@
+program p;
+    var
+        a : int;
+
+    proc f(var b : array [0..5] of int, x : int)
+    begin
+        print b[5]
+    end
+
+    func g(a : f) : int
+    var
+        a : array [0..5] of int;
+        x : int;
+    begin
+        f(a, x);
+        g(a)
+    end
+begin
+    g(f)
+end
+
