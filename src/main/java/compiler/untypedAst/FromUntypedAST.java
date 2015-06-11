@@ -6,7 +6,7 @@ import compiler.ast.expr.BinaryExpr;
 import compiler.ast.expr.Expr;
 import compiler.ast.expr.UnaryExpr;
 import compiler.ast.scopes.*;
-import compiler.ast.statement.Statement;
+import compiler.ast.statement.*;
 import compiler.errors.StatementUnsupportedException;
 import compiler.util.Function;
 import compiler.util.List;
@@ -172,32 +172,32 @@ public class FromUntypedAST {
     public static Statement parseStatement(AST statementAST) {
         switch (statementAST.label) {
             case "Print":
-                return new Statement.Print(parseExpression(statementAST.left));
+                return new Print(parseExpression(statementAST.left));
             case "If":
                 if (statementAST.right.label.equals("Else")) {
-                    return new Statement.IfElse(
+                    return new IfElse(
                             // TypeChecking TODO: Typecheck that this is boolean:
                             parseExpression(statementAST.left),
                             parseStatements(statementAST.right.left),
                             parseStatements(statementAST.right.right));
                 } else {
-                    return new Statement.If(
+                    return new If(
                             parseExpression(statementAST.left),
                             parseStatements(statementAST.right)
                     );
                 }
             case "While":
-                return new Statement.While(
+                return new While(
                         parseExpression(statementAST.left),
                         parseStatements(statementAST.right)
                 );
             case "Assignment":
-                return new Statement.Assignment(
+                return new Assignment(
                         parseLHS(statementAST.left).getOrError("Assignment to non-LHS: " + statementAST.left),
                         parseExpression(statementAST.right)
                 );
             case "Switch":
-                return new Statement.Switch(
+                return new Switch(
                         parseExpression(statementAST.left),
                         parseSwitchCases(statementAST.right)
                 );
@@ -266,13 +266,13 @@ public class FromUntypedAST {
         return Tuple2.pair(caseNumber, statements);
     }
 
-    public static List<Statement.Switch.Case> parseSwitchCases(AST casesList) {
+    public static List<Switch.Case> parseSwitchCases(AST casesList) {
         if (casesList == null) {
             return List.nil();
         } else {
             assert casesList.label.equals("CaseList");
             Tuple2<Integer, List<Statement>> caseStructure = parseCase(casesList.right);
-            Statement.Switch.Case _case = new Statement.Switch.Case(caseStructure.first, caseStructure.second);
+            Switch.Case _case = new Switch.Case(caseStructure.first, caseStructure.second);
             return parseSwitchCases(casesList.left).append(List.single(_case));
         }
     }
