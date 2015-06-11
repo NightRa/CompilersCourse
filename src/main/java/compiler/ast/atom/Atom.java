@@ -1,12 +1,12 @@
 package compiler.ast.atom;
 
-import compiler.ast.PCodeType;
+import compiler.ast.Type;
 import compiler.ast.expr.Expr;
 
 import java.util.Map;
 
 public abstract class Atom<A> extends Expr<A> {
-    public abstract PCodeType rawType(Map<String, PCodeType> typeTable);
+    public abstract Type rawType(Map<String, Type> typeTable);
     public int precedence() {
         return 0;
     }

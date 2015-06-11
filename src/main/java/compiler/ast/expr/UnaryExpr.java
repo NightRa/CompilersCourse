@@ -1,6 +1,6 @@
 package compiler.ast.expr;
 
-import compiler.ast.PCodeType;
+import compiler.ast.Type;
 import compiler.pcode.PCommand;
 import compiler.pcode.SymbolTable;
 import compiler.util.List;
@@ -12,27 +12,14 @@ import java.util.Map;
  */
 public abstract class UnaryExpr<A> extends Expr<A> {
     public final Expr<A> expr;
-    protected abstract PCommand operation();
 
-    protected UnaryExpr(Expr<A> expr) {
-        this.expr = expr;
-    }
-    public List<PCommand> evaluateExpr(SymbolTable symbolTable, Map<String, PCodeType> typeTable) {
-        /**
-         * <Push inner expr.>
-         * Unary op.
-         **/
-        List<PCommand> inner = expr.evaluateExpr(symbolTable, typeTable);
-        List<PCommand> op = List.single(operation());
-        // TODO: Change list to something with a faster append, O(n) here!
-        return inner.append(op);
-    }
+    // Cases
     public static final class Neg extends UnaryExpr<Number> {
         public Neg(Expr<Number> expr) {
             super(expr);
         }
 
-        public PCodeType rawType(Map<String, PCodeType> typeTable) {
+        public Type rawType(Map<String, Type> typeTable) {
             return expr.rawType(typeTable);
         }
         public String toString() {
@@ -56,8 +43,8 @@ public abstract class UnaryExpr<A> extends Expr<A> {
         public Not(Expr<Boolean> expr) {
             super(expr);
         }
-        public PCodeType rawType(Map<String, PCodeType> typeTable) {
-            return PCodeType.Bool;
+        public Type rawType(Map<String, Type> typeTable) {
+            return Type.Bool;
         }
         public String toString() {
             return "!"+precedenceParens(this.precedence(), expr);
@@ -75,6 +62,23 @@ public abstract class UnaryExpr<A> extends Expr<A> {
         public boolean equals(Object o) {
             return super.equals(o) && o instanceof Not;
         }
+    }
+    // Cases end
+
+    protected abstract PCommand operation();
+
+    protected UnaryExpr(Expr<A> expr) {
+        this.expr = expr;
+    }
+    public List<PCommand> evaluateExpr(SymbolTable symbolTable, Map<String, Type> typeTable) {
+        /**
+         * <Push inner expr.>
+         * Unary op.
+         **/
+        List<PCommand> inner = expr.evaluateExpr(symbolTable, typeTable);
+        List<PCommand> op = List.single(operation());
+        // Optimize TODO: Change list to something with a faster append, O(n) here!
+        return inner.append(op);
     }
 
     public int precedence() {

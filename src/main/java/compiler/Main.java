@@ -1,6 +1,6 @@
 package compiler;
 
-import compiler.ast.Program;
+import compiler.ast.scopes.Program;
 import compiler.pcode.PCommand;
 import compiler.untypedAst.AST;
 import compiler.untypedAst.FromUntypedAST;

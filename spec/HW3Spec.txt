@@ -1,0 +1,69 @@
+Symbol Table?
+  Old representation is gone.
+  Variable name -> resolved to lowest enclosing scope (travel up in scope tree) -> relative depth (current depth, definition depth) + frame offset (defining scope)
+  We get the definig scope from the scope tree.
+  Each scope includes definitions. (need to check if a definition with a certain name is included here.)
+
+Function values?
+  There will be a function expr. ! f -> descriptor in 2 bytes.
+  This includes the function name.
+
+Functions/Procedures:
+  Differences:
+    retp - retf
+    function name as return value in functions.
+
+References:
+  All mutable variables are reference 'boxes'
+  Passing by reference means passing the same box - reference.
+  Passing by value means creating a new box with a copy of the value.
+
+eval byVal value = value
+eval byRef value = &value
+eval byVal ref   = *reg
+eval byRef ref   = ref
+
+Array access of reference:
+func f(var x: array [1..5] of int)
+begin
+  x[1] = 3
+end
+ => type(x) should be array[1..5] of int, so that we know the bounds and everything..
+ Same for records and pointers..
+
+---
+
+Why the heck should a var know how to evaluate itself?!
+=> It should pass the responsibility to what it refers to:
+   - An array (copy and such).
+   - A reference.
+   - A primitive value.
+- Have a function eval.
+
+x - a = b
++ - f(a)
+
+The Function return value is just a regular local variable, that is returned at the end of the runtime of the function.
+
+---
+
+func f(x: int) : int
+begin
+  f = 5
+  g(f)
+end
+
+func g(x: func) : int
+begin
+  x(3)
+end
+
+---
+
+func f(): func
+begin
+  f = f
+end
+
+---
+

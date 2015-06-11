@@ -1,6 +1,7 @@
-package compiler.ast;
+package compiler.ast.scopes;
 
-import compiler.ast.atom.Var;
+import compiler.ast.Type;
+import compiler.ast.TypeResolution;
 import compiler.ast.statement.Statement;
 import compiler.pcode.CounterLabelGenerator;
 import compiler.pcode.LabelGenerator;
@@ -14,11 +15,11 @@ import java.util.Map;
 
 public class Program {
     public final String programName;
-    public final List<Var> declarations;
+    public final List<Declaration> declarations;
     public final List<Statement> statements;
     public static final int startingAddress = 5;
 
-    public Program(String programName, List<Var> declarations, List<Statement> statements) {
+    public Program(String programName, List<Declaration> declarations, List<Statement> statements) {
         this.programName = programName;
         this.declarations = declarations;
         this.statements = statements;
@@ -43,22 +44,22 @@ public class Program {
         return header + declarationsString + program;
     }
 
-    public static String declarationsString(List<Var> declarations) {
+    public static String declarationsString(List<Declaration> declarations) {
         return Strings.indent(2, Strings.mkString(
                 "", "\r\n", "",
                 declarations,
-                new Function<Var, String>() {
-                    public String apply(Var var) {
+                new Function<Declaration, String>() {
+                    public String apply(Declaration var) {
                         return var.declarationString();
                     }
                 }));
     }
 
-    public List<PCommand> genPCode(SymbolTable symbolTable, Map<String, PCodeType> typeTable, LabelGenerator labelGenerator) {
+    public List<PCommand> genPCode(SymbolTable symbolTable, Map<String, Type> typeTable, LabelGenerator labelGenerator) {
         return statements.flatMap(Statement.genCode(symbolTable, typeTable, labelGenerator));
     }
     public List<PCommand> genPCode(int startingAddress) {
-        Map<String, PCodeType> typeTable = TypeResolution.makeTypeTable(declarations);
+        Map<String, Type> typeTable = TypeResolution.makeTypeTable(declarations);
         SymbolTable symbolTable = SymbolTable.assignAddresses(declarations, startingAddress, typeTable);
         LabelGenerator labelGenerator = new CounterLabelGenerator();
         return genPCode(symbolTable, typeTable, labelGenerator);
@@ -76,4 +77,5 @@ public class Program {
             }
         });
     }
+
 }

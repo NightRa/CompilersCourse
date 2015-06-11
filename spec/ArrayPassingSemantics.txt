@@ -1,0 +1,13 @@
+Static array passing semantics:
+  a -> val b: copy first |b| elements from a. 
+  a -> ref b: address of a.
+Dynamic array passing semantics:
+  a -> val b: caller copies the descriptor of a, callee copies the contents, and changes the pointer in the descriptor.
+  a -> ref b: address of a.
+
+Dynamic -> Static: copy contents
+Static -> Dynamic: construct the descriptor.  
+
+Note: All the operations are unsafe.
+
+f(a) = f(coerce(type(b), a))

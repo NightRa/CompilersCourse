@@ -1,6 +1,8 @@
 package compiler.ast.atom;
 
-import compiler.ast.PCodeType;
+import compiler.ast.Type;
+import compiler.ast.Type.PType;
+import compiler.ast.Type.PointerType;
 import compiler.errors.IllegalTypeException;
 import compiler.pcode.PCommand;
 import compiler.pcode.SymbolTable;
@@ -14,22 +16,22 @@ public class PointerDeref<A> extends LHS<A> {
         this.pointerVar = pointerVar;
     }
 
-    public PCodeType.PointerType varType(Map<String, PCodeType> typeTable) {
-        PCodeType type = pointerVar.type(typeTable);
-        if (!(type instanceof PCodeType.PointerType)) {
+    public PointerType varType(Map<String, Type> typeTable) {
+        PType type = pointerVar.type(typeTable);
+        if (!(type instanceof Type.PointerType)) {
             throw new IllegalTypeException("Dereference of a non-pointer type: " + pointerVar.toString());
         } else {
-            return (PCodeType.PointerType) type;
+            return (Type.PointerType) type;
         }
     }
 
     @Override
-    public PCodeType rawType(Map<String, PCodeType> typeTable) {
+    public Type rawType(Map<String, Type> typeTable) {
         // This is the only reason for the typeTable parameter.
         return varType(typeTable).ofType;
     }
 
-    public List<PCommand> loadAddress(SymbolTable symbolTable, Map<String, PCodeType> typeTable) {
+    public List<PCommand> loadAddress(SymbolTable symbolTable, Map<String, Type> typeTable) {
         /**
          * load addr(var^) = eval(var)  = *(&var)
          * eval     (var^) = *eval(var) = *(*(&var)) = *(load addr(var^))

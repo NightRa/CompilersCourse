@@ -1,6 +1,6 @@
 package compiler.ast.expr;
 
-import compiler.ast.PCodeType;
+import compiler.ast.Type;
 import compiler.pcode.PCommand;
 import compiler.pcode.SymbolTable;
 import compiler.util.List;
@@ -17,61 +17,7 @@ public abstract class BinaryExpr<A, B, C> extends Expr<C> {
     public final Expr<B> right;
     public final String symbol;
 
-    protected abstract PCommand operation();
-    public List<PCommand> evaluateExpr(SymbolTable symbolTable, Map<String, PCodeType> typeTable) {
-        /**
-         * <Gen left  expr.>
-         * <Gen right expr.>
-         * Binary op.
-         **/
-        List<PCommand> leftCommands = left.evaluateExpr(symbolTable, typeTable);
-        List<PCommand> rightCommands = right.evaluateExpr(symbolTable, typeTable);
-        List<PCommand> operation = List.single(operation());
-        // TODO: Change list to something with a faster append, O(n) here!
-        return leftCommands.append(rightCommands).append(operation);
-    }
-    protected BinaryExpr(Expr<A> left, Expr<B> right, String symbol) {
-        this.left = left;
-        this.right = right;
-        this.symbol = symbol;
-    }
-
-    public static abstract class ClosedBinaryExpr<A> extends BinaryExpr<A, A, A> {
-        protected ClosedBinaryExpr(Expr<A> left, Expr<A> right, String symbol) {
-            super(left, right, symbol);
-        }
-
-        /*TODO: If types of children are different, then the type() computation should be different*/
-        public PCodeType rawType(Map<String, PCodeType> typeTable) {
-            return left.rawType(typeTable);
-        }
-    }
-    public static abstract class ComparisonBinaryExpr<A> extends BinaryExpr<A, A, Boolean> {
-        protected ComparisonBinaryExpr(Expr<A> left, Expr<A> right, String symbol) {
-            super(left, right, symbol);
-        }
-
-        public PCodeType rawType(Map<String, PCodeType> typeTable) {
-            return PCodeType.Bool;
-        }
-    }
-
-    public static ClosedBinaryExpr<Number> plus(Expr<Number> left, Expr<Number> right) {
-        return new Plus(left, right);
-    }
-
-    public static ClosedBinaryExpr<Number> minus(Expr<Number> left, Expr<Number> right) {
-        return new Minus(left, right);
-    }
-
-    public static ClosedBinaryExpr<Number> mult(Expr<Number> left, Expr<Number> right) {
-        return new Mult(left, right);
-    }
-
-    public static ClosedBinaryExpr<Number> div(Expr<Number> left, Expr<Number> right) {
-        return new Div(left, right);
-    }
-
+    // Cases
     public static final class Plus extends ClosedBinaryExpr<Number> {
         public Plus(Expr<Number> left, Expr<Number> right) {
             super(left, right, "+");
@@ -254,6 +200,64 @@ public abstract class BinaryExpr<A, B, C> extends Expr<C> {
             return left.eval() || right.eval();
         }
     }
+    // Cases end
+
+
+    protected abstract PCommand operation();
+    public List<PCommand> evaluateExpr(SymbolTable symbolTable, Map<String, Type> typeTable) {
+        /**
+         * <Gen left  expr.>
+         * <Gen right expr.>
+         * Binary op.
+         **/
+        List<PCommand> leftCommands = left.evaluateExpr(symbolTable, typeTable);
+        List<PCommand> rightCommands = right.evaluateExpr(symbolTable, typeTable);
+        List<PCommand> operation = List.single(operation());
+        // Optimize TODO: Change list to something with a faster append, O(n) here!
+        return leftCommands.append(rightCommands).append(operation);
+    }
+    protected BinaryExpr(Expr<A> left, Expr<B> right, String symbol) {
+        this.left = left;
+        this.right = right;
+        this.symbol = symbol;
+    }
+
+    public static abstract class ClosedBinaryExpr<A> extends BinaryExpr<A, A, A> {
+        protected ClosedBinaryExpr(Expr<A> left, Expr<A> right, String symbol) {
+            super(left, right, symbol);
+        }
+
+        public Type rawType(Map<String, Type> typeTable) {
+            return left.rawType(typeTable);
+        }
+    }
+    public static abstract class ComparisonBinaryExpr<A> extends BinaryExpr<A, A, Boolean> {
+        protected ComparisonBinaryExpr(Expr<A> left, Expr<A> right, String symbol) {
+            super(left, right, symbol);
+        }
+
+        public Type rawType(Map<String, Type> typeTable) {
+            return Type.Bool;
+        }
+    }
+
+    public static ClosedBinaryExpr<Number> plus(Expr<Number> left, Expr<Number> right) {
+        return new Plus(left, right);
+    }
+
+    public static ClosedBinaryExpr<Number> minus(Expr<Number> left, Expr<Number> right) {
+        return new Minus(left, right);
+    }
+
+    public static ClosedBinaryExpr<Number> mult(Expr<Number> left, Expr<Number> right) {
+        return new Mult(left, right);
+    }
+
+    public static ClosedBinaryExpr<Number> div(Expr<Number> left, Expr<Number> right) {
+        return new Div(left, right);
+    }
+
+
 
     public String toString() {
         return precedenceParens(this.precedence(), left) + " " + symbol + " " + precedenceParens(this.precedence(), right);

@@ -1,6 +1,6 @@
 package compiler.ast.atom;
 
-import compiler.ast.PCodeType;
+import compiler.ast.Type;
 import compiler.pcode.PCommand;
 import compiler.pcode.SymbolTable;
 import compiler.util.Function;
@@ -10,63 +10,51 @@ import java.util.Map;
 
 public class Var<A> extends LHS<A> {
     public final String name;
-    public final PCodeType type;
 
-    public Var(String name, PCodeType type) {
+    public Var(String name) {
         this.name = name;
-        this.type = type;
     }
 
-    public PCodeType rawType(Map<String, PCodeType> typeTable) {
-        return type;
+    public Type rawType(Map<String, Type> typeTable) {
+        return typeTable.get(name);
     }
 
     public String toString() {
         return name;
     }
-    public String declarationString() {
-        return name + ": " + type.toString();
-    }
 
-    public Var<A> setType(PCodeType newType) {
-        return new Var<>(this.name, newType);
-    }
+    public final static Function<String, Var> var = new Function<String, Var>() {
+        @Override
+        public Var apply(String name) {
+            return new Var(name);
+        }
+    };
 
     @Override
-    public List<PCommand> loadAddress(SymbolTable symbolTable, Map<String, PCodeType> typeTable) {
-        // TODO: Proper error handling, don't throw an exception.
+    public List<PCommand> loadAddress(SymbolTable symbolTable, Map<String, Type> typeTable) {
+        // Safety TODO: Proper error handling, don't throw an exception.
         int address = symbolTable.unsafeGetAddress(this.name);
         PCommand loadAddress = new PCommand.LoadConstCommand(Literal.intLiteral(address));
         return List.single(loadAddress);
     }
-
-    public static final Function<Var, String> varName = new Function<Var, String>() {
-        public String apply(Var var) {
-            return var.name;
-        }
-    };
-    public static final Function<Var, PCodeType> varType = new Function<Var, PCodeType>() {
-        @Override
-        public PCodeType apply(Var var) {
-            return var.type;
-        }
-    };
 
     @Override
     public A eval() {
         throw new UnsupportedOperationException("Eval of Var isn't supported.");
     }
 
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Var<?> var = (Var<?>) o;
-        return name.equals(var.name);
-    }
-    public int hashCode() {
-        int result = name.hashCode();
-        result = 31 * result + type.hashCode();
-        return result;
-    }
+        if (!(o instanceof Var)) return false;
 
+        Var<?> var = (Var<?>) o;
+
+        return name.equals(var.name);
+
+    }
+    @Override
+    public int hashCode() {
+        return name.hashCode();
+    }
 }

@@ -1,6 +1,6 @@
 package compiler.ast.atom;
 
-import compiler.ast.PCodeType;
+import compiler.ast.Type;
 import compiler.ast.expr.Expr;
 import compiler.errors.IllegalTypeException;
 import compiler.pcode.PCommand;
@@ -10,8 +10,8 @@ import compiler.util.Strings;
 
 import java.util.Map;
 
-import static compiler.ast.PCodeType.ArrayType;
-import static compiler.ast.PCodeType.ArrayType.Bounds;
+import static compiler.ast.Type.ArrayType;
+import static compiler.ast.Type.ArrayType.Bounds;
 import static compiler.ast.atom.Literal.intLiteral;
 import static compiler.ast.expr.BinaryExpr.mult;
 import static compiler.ast.expr.BinaryExpr.plus;
@@ -25,8 +25,8 @@ public class ArrayAccess<A> extends LHS<A> {
         this.indices = indices;
     }
 
-    public ArrayType arrayType(Map<String, PCodeType> typeTable) {
-        PCodeType type = arrayVar.type(typeTable);
+    public ArrayType arrayType(Map<String, Type> typeTable) {
+        Type type = arrayVar.type(typeTable);
         if (!(type instanceof ArrayType)) {
             throw new IllegalTypeException("ArrayAccess of a non-array type: " + arrayVar.toString());
         } else {
@@ -35,12 +35,12 @@ public class ArrayAccess<A> extends LHS<A> {
     }
 
     @Override
-    public PCodeType rawType(Map<String, PCodeType> typeTable) {
+    public Type rawType(Map<String, Type> typeTable) {
         return arrayType(typeTable).ofType;
     }
 
     @Override
-    public List<PCommand> loadAddress(SymbolTable symbolTable, Map<String, PCodeType> typeTable) {
+    public List<PCommand> loadAddress(SymbolTable symbolTable, Map<String, Type> typeTable) {
         List<Expr<Number>> indicesExprs = indices;
         List<Expr<Number>> dimensions = arrayType(typeTable).bounds.map(Bounds.size).map(intLiteral);
         Expr<Number> sizeExpr = intLiteral(arrayType(typeTable).ofType.size(typeTable));
@@ -49,7 +49,7 @@ public class ArrayAccess<A> extends LHS<A> {
         return generateIndexAddressCode(arrayVar, indexOffset, subpartOffset, symbolTable, typeTable);
     }
 
-    public static List<PCommand> generateIndexAddressCode(LHS<?> arrayVar, Expr<Number> indexOffset, int subpartOffset, SymbolTable symbolTable, Map<String, PCodeType> typeTable) {
+    public static List<PCommand> generateIndexAddressCode(LHS<?> arrayVar, Expr<Number> indexOffset, int subpartOffset, SymbolTable symbolTable, Map<String, Type> typeTable) {
         // a + indexOffset - subpartOffset
         // load a.
         // compute indexOffset
@@ -69,7 +69,7 @@ public class ArrayAccess<A> extends LHS<A> {
                         sub));
     }
 
-    public static int computeStartOffset(List<Bounds> bounds, List<Integer> dimensions, Expr<Number> sizeExpr, Map<String, PCodeType> typeTable) {
+    public static int computeStartOffset(List<Bounds> bounds, List<Integer> dimensions, Expr<Number> sizeExpr, Map<String, Type> typeTable) {
         List<Expr<Number>> startIndices = bounds.map(Bounds.start).map(intLiteral);
         List<Expr<Number>> dimensionsExpr = dimensions.map(intLiteral);
         return computeOffset(startIndices, dimensionsExpr, sizeExpr, typeTable).eval().intValue();
@@ -77,7 +77,7 @@ public class ArrayAccess<A> extends LHS<A> {
 
     // function: [Expr] (indices) -> Expr that computes the offset.
     @SuppressWarnings("unchecked")
-    public static Expr<Number> computeOffset(List<Expr<Number>> indices, List<Expr<Number>> dimensions, Expr<Number> size, Map<String, PCodeType> typeTable) {
+    public static Expr<Number> computeOffset(List<Expr<Number>> indices, List<Expr<Number>> dimensions, Expr<Number> size, Map<String, Type> typeTable) {
         if (indices.length != dimensions.length) {
             throw new IllegalArgumentException("indices isn't of the same length as loweBounds!" +
                     "\r\nindices:\r\n" + indices +
@@ -90,11 +90,11 @@ public class ArrayAccess<A> extends LHS<A> {
             while (indices.length > 1) {
                 Expr index = indices.head();
                 Expr lowerBound = dimensions.head();
-                // TODO: Unification instead of equality.
-                if (!(index.type(typeTable) instanceof PCodeType.Int)) {
+                // TypeChecking TODO: Unification instead of equality.
+                if (!(index.type(typeTable) instanceof Type.Int)) {
                     throw new IllegalTypeException("Non int indices!");
                 }
-                if (!(lowerBound.type(typeTable) instanceof PCodeType.Int)) {
+                if (!(lowerBound.type(typeTable) instanceof Type.Int)) {
                     throw new IllegalTypeException("Non int lower bound!");
                 }
                 computation = mult(plus(computation, index), dimensions.head());

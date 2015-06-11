@@ -1,6 +1,8 @@
 package compiler.ast.atom;
 
-import compiler.ast.PCodeType;
+import compiler.ast.Type;
+import compiler.ast.Type.PType;
+import compiler.ast.Type.RecordType;
 import compiler.errors.IllegalTypeException;
 import compiler.pcode.PCommand;
 import compiler.pcode.SymbolTable;
@@ -9,8 +11,7 @@ import compiler.util.Maps;
 
 import java.util.Map;
 
-import static compiler.ast.PCodeType.RecordType;
-import static compiler.ast.PCodeType.RecordType.Field;
+import static compiler.ast.Type.RecordType.Field;
 
 public class RecordAccess<A> extends LHS<A> {
     public final LHS<?> lhs;
@@ -20,8 +21,8 @@ public class RecordAccess<A> extends LHS<A> {
         this.fieldName = fieldName;
     }
 
-    public Field extractField(Map<String, PCodeType> typeTable) {
-        PCodeType type = lhs.type(typeTable);
+    public Field extractField(Map<String, Type> typeTable) {
+        PType type = lhs.type(typeTable);
         if (!(type instanceof RecordType)) {
             throw new IllegalTypeException("Record access on non-record type: " + lhs.toString() + " of type " + type + ", fieldName: " + fieldName);
         } else {
@@ -32,12 +33,12 @@ public class RecordAccess<A> extends LHS<A> {
     }
 
     @Override
-    public PCodeType rawType(Map<String, PCodeType> typeTable) {
+    public Type rawType(Map<String, Type> typeTable) {
         return extractField(typeTable).var.type;
     }
 
     @Override
-    public List<PCommand> loadAddress(SymbolTable symbolTable, Map<String, PCodeType> typeTable) {
+    public List<PCommand> loadAddress(SymbolTable symbolTable, Map<String, Type> typeTable) {
         /**
          * Load lhs address.
          * INC offset of the fieldName.

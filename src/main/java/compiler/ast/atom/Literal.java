@@ -1,6 +1,6 @@
 package compiler.ast.atom;
 
-import compiler.ast.PCodeType;
+import compiler.ast.Type;
 import compiler.ast.expr.Expr;
 import compiler.pcode.PCommand;
 import compiler.pcode.SymbolTable;
@@ -10,12 +10,12 @@ import compiler.util.List;
 
 import java.util.Map;
 
-/*TODO: Wrap in option, make a safe casts from String to Literal values*/
+/* Safety TODO: Wrap in option, make a safe casts from String to Literal values*/
 public abstract class Literal<A> extends Atom<A> implements ToPCodeString {
     public final A value;
-    public abstract PCodeType rawType(Map<String, PCodeType> typeTable);
+    public abstract Type rawType(Map<String, Type> typeTable);
 
-    public List<PCommand> evaluateExpr(SymbolTable symbolTable, Map<String, PCodeType> typeTable) {
+    public List<PCommand> evaluateExpr(SymbolTable symbolTable, Map<String, Type> typeTable) {
         return List.<PCommand>single(new PCommand.LoadConstCommand(this));
     }
 
@@ -27,8 +27,8 @@ public abstract class Literal<A> extends Atom<A> implements ToPCodeString {
             super(value);
         }
 
-        public PCodeType rawType(Map<String, PCodeType> typeTable) {
-            return PCodeType.Int;
+        public Type rawType(Map<String, Type> typeTable) {
+            return Type.Int;
         }
         @Override
         public Number eval() {
@@ -53,8 +53,8 @@ public abstract class Literal<A> extends Atom<A> implements ToPCodeString {
             super(value);
         }
 
-        public PCodeType rawType(Map<String, PCodeType> typeTable) {
-            return PCodeType.Real;
+        public Type rawType(Map<String, Type> typeTable) {
+            return Type.Real;
         }
         @Override
         public Double eval() {
@@ -69,8 +69,8 @@ public abstract class Literal<A> extends Atom<A> implements ToPCodeString {
             super(value);
         }
 
-        public PCodeType rawType(Map<String, PCodeType> typeTable) {
-            return PCodeType.Bool;
+        public Type rawType(Map<String, Type> typeTable) {
+            return Type.Bool;
         }
         @Override
         public Boolean eval() {

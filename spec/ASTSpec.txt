@@ -6,9 +6,10 @@ Var = (name: String), (type: Type)
 LHS = Var | ArrayAccess (Var, [Int]) | PointerDeref Var | RecordAccess (LHS, Var)
 // Base for the RecordAccess recursion is Var.
 -----
-Type = BaseType | Record [Var] | Array ([Bounds], RefType)
+Type = Reference (PType) | PType
+PType = BaseType | Record [Var] | Array ([Bounds], RefType)
 BaseType = RefType | Pointer RefType
-RefType = Primitive | IdentifierType String
+SimpleType = Primitive | IdentifierType String
 Primitive = Int | Real | Boolean
 -----
 Statements = [Statement]

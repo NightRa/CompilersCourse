@@ -1,7 +1,7 @@
 package compiler.pcode;
 
-import compiler.ast.PCodeType;
-import compiler.ast.atom.Var;
+import compiler.ast.Type;
+import compiler.ast.scopes.Declaration;
 import compiler.errors.VariableNameUndefined;
 import compiler.util.List;
 import compiler.util.Option;
@@ -9,6 +9,7 @@ import compiler.util.Option;
 import java.util.HashMap;
 import java.util.Map;
 
+// TODO: Remove! Not relevant anymore.
 public class SymbolTable {
     private final HashMap<String, AddressedVar> symbolTable;
 
@@ -25,17 +26,17 @@ public class SymbolTable {
         return Option.fromNull(symbolTable.getOrDefault(varName, null));
     }
 
-    public static SymbolTable assignAddresses(final List<Var> variables, final int startingAddress, Map<String, PCodeType> typeTable) {
+    public static SymbolTable assignAddresses(final List<Declaration> variables, final int startingAddress, Map<String, Type> typeTable) {
         HashMap<String, AddressedVar> symbolTable = new HashMap<>();
         int currentAddress = startingAddress;
-        for (Var var : variables) {
+        for (Declaration var : variables) {
             symbolTable.put(var.name, assignAddress(var, currentAddress));
             currentAddress += var.type.size(typeTable);
         }
         return symbolTable(symbolTable);
     }
 
-    private static AddressedVar assignAddress(Var var, int address) {
+    private static AddressedVar assignAddress(Declaration var, int address) {
         return new AddressedVar(var.name, var.type, address);
     }
 

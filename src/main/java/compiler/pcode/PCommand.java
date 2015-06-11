@@ -126,8 +126,12 @@ public abstract class PCommand implements ToPCodeString {
         }
     }
     public static final class LoadNestedAddressCommand extends PCommand {
-        public static int parentDepth;
-        public static int offset;
+        public final int parentDepth;
+        public final int offset;
+        public LoadNestedAddressCommand(int parentDepth, int offset) {
+            this.parentDepth = parentDepth;
+            this.offset = offset;
+        }
         @Override
         public String toPCodeString() {
             return "LDA " + parentDepth + " " + offset;

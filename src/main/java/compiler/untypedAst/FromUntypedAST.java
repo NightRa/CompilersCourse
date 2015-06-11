@@ -1,11 +1,11 @@
 package compiler.untypedAst;
 
-import compiler.ast.PCodeType;
-import compiler.ast.Program;
 import compiler.ast.atom.*;
 import compiler.ast.expr.BinaryExpr;
 import compiler.ast.expr.Expr;
 import compiler.ast.expr.UnaryExpr;
+import compiler.ast.scopes.Declaration;
+import compiler.ast.scopes.Program;
 import compiler.ast.statement.Statement;
 import compiler.errors.StatementUnsupportedException;
 import compiler.util.Function;
@@ -13,12 +13,10 @@ import compiler.util.List;
 import compiler.util.Option;
 import compiler.util.Tuple2;
 
-import java.util.HashMap;
-
-import static compiler.ast.PCodeType.*;
+import static compiler.ast.Type.*;
 import static compiler.util.Option.*;
 
-/*TODO: Unsafe fromUntypedAST - throws exceptions all over the place :)*/
+/* Safety TODO: Unsafe fromUntypedAST - throws exceptions all over the place :)*/
 public class FromUntypedAST {
     // Program => PCode
     // main = parse: AST => Option[Program] o codeGen: Program => PCode
@@ -31,103 +29,92 @@ public class FromUntypedAST {
         AST identifier = identAndParams.left;
         // ---------------------------------------------
         assert identifier.label.equals("Identifier");
-        String programName = parseIdentifier(identifier).get();
+        String programName = parseIdentifier(identifier).get().name;
         // ---------------------------------------------
         AST content = ast.right;
         assert content.label.equals("Content");
         // ---------------------------------------------
-        List<Var> declarations;
+        List<Declaration> declarations;
         List<Statement> statements;
-        final HashMap<String, Var> symbolTable;
         // ---------------------------------------------
         AST scope = content.left;
         if (scope == null) {
             declarations = List.nil();
-            symbolTable = new HashMap<>();
         } else {
             assert scope.label.equals("Scope");
             // ---------------------------------------------
             declarations = parseDeclarationList(scope.left);
-            symbolTable = createSymbolTable(declarations);
         }
         // ---------------------------------------------
         if (content.right == null) {
             statements = List.nil();
         } else {
-            statements = parseStatements(content.right, symbolTable);
+            statements = parseStatements(content.right);
         }
         // ---------------------------------------------
         return new Program(programName, declarations, statements);
     }
 
-    public static HashMap<String, Var> createSymbolTable(List<Var> declarations) {
-        HashMap<String, Var> symbolTable = new HashMap<>();
-        for (Var var : declarations) {
-            symbolTable.put(var.name, var);
-        }
-        return symbolTable;
-    }
-
-    public static List<Var> parseDeclarationList(AST declarationList) {
+    public static List<Declaration> parseDeclarationList(AST declarationList) {
         List<AST> declarationASTs = parseASTList(declarationList, "DeclarationsList");
-        return declarationASTs.map(new Function<AST, Var>() {
-            public Var apply(AST value) {
+        return declarationASTs.map(new Function<AST, Declaration>() {
+            public Declaration apply(AST value) {
                 return parseDeclaration(value);
             }
         });
     }
 
-    public static List<Statement> parseStatements(AST statementsAST, final HashMap<String, Var> symbolTable) {
+    public static List<Statement> parseStatements(AST statementsAST) {
         List<AST> statementsASTs = parseASTList(statementsAST, "StatementsList");
         return statementsASTs.map(new Function<AST, Statement>() {
             public Statement apply(AST value) {
-                return parseStatement(value, symbolTable);
+                return parseStatement(value);
             }
         });
     }
 
     @SuppressWarnings("unchecked")
-    public static Var parseDeclaration(AST varAST) {
+    public static Declaration parseDeclaration(AST varAST) {
         assert varAST.label.equals("Var");
         AST identAST = varAST.left;
         assert identAST.label.equals("Identifier");
-        String identifier = parseIdentifier(identAST).get();
-        PCodeType type = parseType(varAST.right);
-        return new Var(identifier, type);
+        String identifier = parseIdentifier(identAST).get().name;
+        PType type = parsePType(varAST.right);
+        return new Declaration(identifier, type);
     }
 
     @SuppressWarnings("unchecked")
-    public static Statement parseStatement(AST statementAST, HashMap<String, Var> symbolTable) {
+    public static Statement parseStatement(AST statementAST) {
         switch (statementAST.label) {
             case "Print":
-                return new Statement.Print(parseExpression(statementAST.left, symbolTable));
+                return new Statement.Print(parseExpression(statementAST.left));
             case "If":
                 if (statementAST.right.label.equals("Else")) {
                     return new Statement.IfElse(
-                            // TODO: Typecheck that this is boolean:
-                            parseExpression(statementAST.left, symbolTable),
-                            parseStatements(statementAST.right.left, symbolTable),
-                            parseStatements(statementAST.right.right, symbolTable));
+                            // TypeChecking TODO: Typecheck that this is boolean:
+                            parseExpression(statementAST.left),
+                            parseStatements(statementAST.right.left),
+                            parseStatements(statementAST.right.right));
                 } else {
                     return new Statement.If(
-                            parseExpression(statementAST.left, symbolTable),
-                            parseStatements(statementAST.right, symbolTable)
+                            parseExpression(statementAST.left),
+                            parseStatements(statementAST.right)
                     );
                 }
             case "While":
                 return new Statement.While(
-                        parseExpression(statementAST.left, symbolTable),
-                        parseStatements(statementAST.right, symbolTable)
+                        parseExpression(statementAST.left),
+                        parseStatements(statementAST.right)
                 );
             case "Assignment":
                 return new Statement.Assignment(
-                        parseLHS(statementAST.left, symbolTable).getOrError("Assignment to non-LHS: " + statementAST.left),
-                        parseExpression(statementAST.right, symbolTable)
+                        parseLHS(statementAST.left).getOrError("Assignment to non-LHS: " + statementAST.left),
+                        parseExpression(statementAST.right)
                 );
             case "Switch":
                 return new Statement.Switch(
-                        parseExpression(statementAST.left, symbolTable),
-                        parseSwitchCases(statementAST.right, symbolTable)
+                        parseExpression(statementAST.left),
+                        parseSwitchCases(statementAST.right)
                 );
             default:
                 throw new StatementUnsupportedException(statementAST.label);
@@ -136,11 +123,11 @@ public class FromUntypedAST {
     }
 
     @SuppressWarnings("unchecked")
-    public static Option<LHS<Object>> parseLHS(AST ast, HashMap<String, Var> symbolTable) {
-        Option<Var> varOption = parseVarReference(ast, symbolTable);
-        Option<PointerDeref> pointerDerefOption = parsePointerDeref(ast, symbolTable);
-        Option<ArrayAccess> arrayAccessOption = parseArrayAccess(ast, symbolTable);
-        Option<RecordAccess> recordAccessOption = parseRecordAccess(ast, symbolTable);
+    public static Option<LHS<Object>> parseLHS(AST ast) {
+        Option<Var> varOption = parseVarReference(ast);
+        Option<PointerDeref> pointerDerefOption = parsePointerDeref(ast);
+        Option<ArrayAccess> arrayAccessOption = parseArrayAccess(ast);
+        Option<RecordAccess> recordAccessOption = parseRecordAccess(ast);
 
         return ((Option<LHS<Object>>) (Object) varOption)
                 .orElse((Option<LHS<Object>>) (Object) pointerDerefOption)
@@ -148,10 +135,10 @@ public class FromUntypedAST {
                 .orElse((Option<LHS<Object>>) (Object) recordAccessOption);
     }
 
-    private static Option<RecordAccess> parseRecordAccess(AST ast, HashMap<String, Var> symbolTable) {
+    private static Option<RecordAccess> parseRecordAccess(AST ast) {
         if (ast.label.equals("Record")) {
-            LHS recordVar = parseLHS(ast.left, symbolTable).getOrError("Record access on something which isn't an LHS.");
-            String fieldName = parseIdentifier(ast.right).getOrError("Record access .not fieldName name");
+            LHS recordVar = parseLHS(ast.left).getOrError("Record access on something which isn't an LHS.");
+            String fieldName = parseIdentifier(ast.right).getOrError("Record access .not fieldName name").name;
             return some(new RecordAccess(recordVar, fieldName));
         } else {
             return none();
@@ -159,14 +146,14 @@ public class FromUntypedAST {
     }
 
     @SuppressWarnings("unchecked")
-    private static Option<ArrayAccess> parseArrayAccess(AST ast, final HashMap<String, Var> symbolTable) {
+    private static Option<ArrayAccess> parseArrayAccess(AST ast) {
         if (ast.label.equals("Array")) {
-            LHS<Object> arrayVar = parseLHS(ast.left, symbolTable).getOrError("Array access of something which isn't an LHS.");
+            LHS<Object> arrayVar = parseLHS(ast.left).getOrError("Array access of something which isn't an LHS.");
             List<Expr<Number>> indexList = parseASTList(ast.right, "IndexList").map(new Function<AST, Expr<Number>>() {
                 @SuppressWarnings("unchecked")
                 @Override
                 public Expr<Number> apply(AST exprAST) {
-                    return (Expr<Number>) parseExpression(exprAST, symbolTable);
+                    return (Expr<Number>) parseExpression(exprAST);
                 }
             });
             return some(new ArrayAccess(arrayVar, indexList));
@@ -177,9 +164,9 @@ public class FromUntypedAST {
 
 
     @SuppressWarnings("unchecked")
-    private static Option<PointerDeref> parsePointerDeref(AST ast, HashMap<String, Var> symbolTable) {
+    private static Option<PointerDeref> parsePointerDeref(AST ast) {
         if (ast.label.equals("Pointer")) {
-            LHS<Object> pointerVar = parseLHS(ast.left, symbolTable).getOrError("Pointer of something that isn't an LHS.");
+            LHS<Object> pointerVar = parseLHS(ast.left).getOrError("Pointer of something that isn't an LHS.");
             return some(new PointerDeref(pointerVar));
         } else {
             return none();
@@ -187,96 +174,88 @@ public class FromUntypedAST {
 
     }
 
-    public static Tuple2<Integer, List<Statement>> parseCase(AST caseAST, HashMap<String, Var> symbolTable) {
+    public static Tuple2<Integer, List<Statement>> parseCase(AST caseAST) {
         assert caseAST.label.equals("Case");
         int caseNumber = parseConstInt(caseAST.left);
-        List<Statement> statements = parseStatements(caseAST.right, symbolTable);
+        List<Statement> statements = parseStatements(caseAST.right);
         return Tuple2.pair(caseNumber, statements);
     }
 
-    public static List<Statement.Switch.Case> parseSwitchCases(AST casesList, HashMap<String, Var> symbolTable) {
+    public static List<Statement.Switch.Case> parseSwitchCases(AST casesList) {
         if (casesList == null) {
             return List.nil();
         } else {
             assert casesList.label.equals("CaseList");
-            Tuple2<Integer, List<Statement>> caseStructure = parseCase(casesList.right, symbolTable);
+            Tuple2<Integer, List<Statement>> caseStructure = parseCase(casesList.right);
             Statement.Switch.Case _case = new Statement.Switch.Case(caseStructure.first, caseStructure.second);
-            return parseSwitchCases(casesList.left, symbolTable).append(List.single(_case));
+            return parseSwitchCases(casesList.left).append(List.single(_case));
         }
     }
 
     @SuppressWarnings("unchecked")
-    public static Expr parseExpression(AST ast, HashMap<String, Var> symbolTable) {
-        return ((Option<Expr>) (Object) parseAtom(ast, symbolTable))
-                .orElse((Option<Expr>) (Object) parseUnary(ast, symbolTable))
-                .orElse((Option<Expr>) (Object) parseBinaryExpr(ast, symbolTable))
+    public static Expr parseExpression(AST ast) {
+        return ((Option<Expr>) (Object) parseAtom(ast))
+                .orElse((Option<Expr>) (Object) parseUnary(ast))
+                .orElse((Option<Expr>) (Object) parseBinaryExpr(ast))
                 .getOrError("Unsupported Expression: " + ast);
     }
 
     @SuppressWarnings("unchecked")
-    public static Option<UnaryExpr> parseUnary(AST exprAST, HashMap<String, Var> symbolTable) {
+    public static Option<UnaryExpr> parseUnary(AST exprAST) {
         switch (exprAST.label) {
             case "Negative":
-                return new Some<UnaryExpr>(new UnaryExpr.Neg(parseExpression(exprAST.left, symbolTable)));
+                return new Some<UnaryExpr>(new UnaryExpr.Neg(parseExpression(exprAST.left)));
             case "Not":
-                return new Some<UnaryExpr>(new UnaryExpr.Not(parseExpression(exprAST.left, symbolTable)));
+                return new Some<UnaryExpr>(new UnaryExpr.Not(parseExpression(exprAST.left)));
             default:
                 return none();
         }
     }
 
     @SuppressWarnings("unchecked")
-    public static Option<BinaryExpr> parseBinaryExpr(AST exprAST, HashMap<String, Var> symbolTable) {
-        // TODO: Untyped: need type checking to recover type parameter.
+    public static Option<BinaryExpr> parseBinaryExpr(AST exprAST) {
+        // TypeChecking TODO: Untyped: need type checking to recover type parameter.
         // The code duplication hurts.
         switch (exprAST.label) {
             case "Plus":
-                return new Some<BinaryExpr>(new BinaryExpr.Plus(parseExpression(exprAST.left, symbolTable), parseExpression(exprAST.right, symbolTable)));
+                return new Some<BinaryExpr>(new BinaryExpr.Plus(parseExpression(exprAST.left), parseExpression(exprAST.right)));
             case "Minus":
-                return new Some<BinaryExpr>(new BinaryExpr.Minus(parseExpression(exprAST.left, symbolTable), parseExpression(exprAST.right, symbolTable)));
+                return new Some<BinaryExpr>(new BinaryExpr.Minus(parseExpression(exprAST.left), parseExpression(exprAST.right)));
             case "Multiply":
-                return new Some<BinaryExpr>(new BinaryExpr.Mult(parseExpression(exprAST.left, symbolTable), parseExpression(exprAST.right, symbolTable)));
+                return new Some<BinaryExpr>(new BinaryExpr.Mult(parseExpression(exprAST.left), parseExpression(exprAST.right)));
             case "Divide":
-                return new Some<BinaryExpr>(new BinaryExpr.Div(parseExpression(exprAST.left, symbolTable), parseExpression(exprAST.right, symbolTable)));
+                return new Some<BinaryExpr>(new BinaryExpr.Div(parseExpression(exprAST.left), parseExpression(exprAST.right)));
             case "LessThan":
-                return new Some<BinaryExpr>(new BinaryExpr.LT(parseExpression(exprAST.left, symbolTable), parseExpression(exprAST.right, symbolTable)));
+                return new Some<BinaryExpr>(new BinaryExpr.LT(parseExpression(exprAST.left), parseExpression(exprAST.right)));
             case "GreaterThan":
-                return new Some<BinaryExpr>(new BinaryExpr.GT(parseExpression(exprAST.left, symbolTable), parseExpression(exprAST.right, symbolTable)));
+                return new Some<BinaryExpr>(new BinaryExpr.GT(parseExpression(exprAST.left), parseExpression(exprAST.right)));
             case "LessOrEquals":
-                return new Some<BinaryExpr>(new BinaryExpr.LE(parseExpression(exprAST.left, symbolTable), parseExpression(exprAST.right, symbolTable)));
+                return new Some<BinaryExpr>(new BinaryExpr.LE(parseExpression(exprAST.left), parseExpression(exprAST.right)));
             case "GreaterOrEquals":
-                return new Some<BinaryExpr>(new BinaryExpr.GE(parseExpression(exprAST.left, symbolTable), parseExpression(exprAST.right, symbolTable)));
+                return new Some<BinaryExpr>(new BinaryExpr.GE(parseExpression(exprAST.left), parseExpression(exprAST.right)));
             case "Equals":
-                return new Some<BinaryExpr>(new BinaryExpr.EQ(parseExpression(exprAST.left, symbolTable), parseExpression(exprAST.right, symbolTable)));
+                return new Some<BinaryExpr>(new BinaryExpr.EQ(parseExpression(exprAST.left), parseExpression(exprAST.right)));
             case "NotEquals":
-                return new Some<BinaryExpr>(new BinaryExpr.NEQ(parseExpression(exprAST.left, symbolTable), parseExpression(exprAST.right, symbolTable)));
+                return new Some<BinaryExpr>(new BinaryExpr.NEQ(parseExpression(exprAST.left), parseExpression(exprAST.right)));
             case "And":
-                return new Some<BinaryExpr>(new BinaryExpr.And(parseExpression(exprAST.left, symbolTable), parseExpression(exprAST.right, symbolTable)));
+                return new Some<BinaryExpr>(new BinaryExpr.And(parseExpression(exprAST.left), parseExpression(exprAST.right)));
             case "Or":
-                return new Some<BinaryExpr>(new BinaryExpr.Or(parseExpression(exprAST.left, symbolTable), parseExpression(exprAST.right, symbolTable)));
+                return new Some<BinaryExpr>(new BinaryExpr.Or(parseExpression(exprAST.left), parseExpression(exprAST.right)));
             default:
                 return none();
         }
     }
 
     @SuppressWarnings("unchecked")
-    public static Option<Atom> parseAtom(AST ast, HashMap<String, Var> symbolTable) {
+    public static Option<Atom> parseAtom(AST ast) {
         // Dafaq. Double casting = Just believe me stupid java compiler.
         // Inheritance -> Variance -> Fucked up type inference
         return ((Option<Atom>) (Object) parseConst(ast))
-                .orElse((Option<Atom>) (Object) parseLHS(ast, symbolTable));
+                .orElse((Option<Atom>) (Object) parseLHS(ast));
     }
 
-    public static Option<Var> parseVarReference(AST ast, final HashMap<String, Var> symbolTable) {
-        return parseIdentifier(ast).flatMap(new Function<String, Option<Var>>() {
-            public Option<Var> apply(String name) {
-                if (symbolTable.containsKey(name)) {
-                    return some(symbolTable.get(name));
-                } else {
-                    return none();
-                }
-            }
-        });
+    public static Option<Var> parseVarReference(AST ast) {
+        return parseIdentifier(ast);
     }
 
     public static int parseConstInt(AST ast) {
@@ -284,7 +263,7 @@ public class FromUntypedAST {
         return Integer.parseInt(ast.left.label);
     }
 
-    /*TODO: Throws an exception if parsing label fails*/
+    /* Safety TODO: Throws an exception if parsing label fails*/
     public static Option<Literal> parseConst(AST ast) {
         switch (ast.label) {
             case "ConstInt":
@@ -299,11 +278,11 @@ public class FromUntypedAST {
         }
     }
 
-    public static Option<String> parseIdentifier(AST ast) {
+    public static Option<Var> parseIdentifier(AST ast) {
         if (ast.left == null) {
             return none();
         } else {
-            return iff(ast.label.equals("Identifier"), ast.left.label);
+            return iff(ast.label.equals("Identifier"), ast.left.label).map(Var.var);
         }
     }
 
@@ -321,23 +300,23 @@ public class FromUntypedAST {
     }
 
     @SuppressWarnings("unchecked")
-    public static Option<ReferenceType> parseRefType(AST type) {
-        Option<String> ident = parseIdentifier(type);
-        Option<ReferenceType> identType = ident.map(new Function<String, ReferenceType>() {
-            public ReferenceType apply(String identName) {
-                return new IdentifierType(identName);
+    public static Option<SimpleType> parseSimpleType(AST type) {
+        Option<Var> ident = parseIdentifier(type);
+        Option<SimpleType> identType = ident.map(new Function<Var, SimpleType>() {
+            public SimpleType apply(Var identName) {
+                return new IdentifierType(identName.name);
             }
         });
         return identType
                 .orElse(
-                        (Option<ReferenceType>) (Object)
+                        (Option<SimpleType>) (Object)
                                 parsePrimitiveType(type));
     }
 
     public static Option<PointerType> parsePointerType(AST type) {
         if (type.label.equals("Pointer")) {
-            return parseRefType(type.left).map(new Function<ReferenceType, PointerType>() {
-                public PointerType apply(ReferenceType refType) {
+            return parseSimpleType(type.left).map(new Function<SimpleType, PointerType>() {
+                public PointerType apply(SimpleType refType) {
                     return new PointerType(refType);
                 }
             });
@@ -349,12 +328,12 @@ public class FromUntypedAST {
     @SuppressWarnings("unchecked")
     public static Option<BaseType> parseBaseType(AST type) {
         return ((Option<BaseType>) (Object) parsePointerType(type))
-                .orElse((Option<BaseType>) (Object) parseRefType(type));
+                .orElse((Option<BaseType>) (Object) parseSimpleType(type));
     }
 
     public static Option<RecordType> parseRecord(AST type) {
         if (type.label.equals("Record")) {
-            List<Var> fields = parseDeclarationList(type.left);
+            List<Declaration> fields = parseDeclarationList(type.left);
             return some(new RecordType(fields));
         } else {
             return none();
@@ -363,7 +342,7 @@ public class FromUntypedAST {
 
     public static Option<ArrayType> parseArrayType(AST type) {
         if (type.label.equals("Array")) {
-            ReferenceType ofType = parseRefType(type.right).getOrError("No 'of' type in Array type.");
+            SimpleType ofType = parseSimpleType(type.right).getOrError("No 'of' type in Array type.");
             List<ArrayType.Bounds> bounds = parseASTList(type.left, "RangeList").map(new Function<AST, ArrayType.Bounds>() {
                 @Override
                 public ArrayType.Bounds apply(AST bound) {
@@ -382,10 +361,10 @@ public class FromUntypedAST {
     }
 
     @SuppressWarnings("unchecked")
-    public static PCodeType parseType(AST type) {
-        return ((Option<PCodeType>) (Object) parseBaseType(type))
-                .orElse((Option<PCodeType>) (Object) parseRecord(type))
-                .orElse((Option<PCodeType>) (Object) parseArrayType(type))
+    public static PType parsePType(AST type) {
+        return ((Option<PType>) (Object) parseBaseType(type))
+                .orElse((Option<PType>) (Object) parseRecord(type))
+                .orElse((Option<PType>) (Object) parseArrayType(type))
                 .getOrError("Unsupported type: " + type.label + ", tree: " + type.toString());
     }
 
